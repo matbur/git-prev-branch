@@ -1,4 +1,4 @@
-package gitprevbranch
+package gitprevbranch_test
 
 import (
 	"errors"
@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/matbur/git-prev-branch/gitprevbranch"
 )
 
 // newRepo creates a throwaway repository with one commit on main and returns
@@ -50,7 +52,7 @@ func git(t *testing.T, dir string, args ...string) {
 func TestPreviousInZeroIsTheCurrentBranch(t *testing.T) {
 	repo := newRepo(t)
 
-	got, err := PreviousIn(0, repo)
+	got, err := gitprevbranch.PreviousIn(0, repo)
 	if err != nil {
 		t.Fatalf("PreviousIn(0) = %v", err)
 	}
@@ -73,7 +75,7 @@ func TestPreviousInWalksBackThroughTheSwitchHistory(t *testing.T) {
 
 	want := map[int]string{0: "feat", 1: "other", 2: "main", 3: "feat", 4: "main"}
 	for step, wantBranch := range want {
-		got, err := PreviousIn(step, repo)
+		got, err := gitprevbranch.PreviousIn(step, repo)
 		if err != nil {
 			t.Fatalf("PreviousIn(%d) = %v", step, err)
 		}
@@ -91,10 +93,10 @@ func TestPreviousInBeyondTheHistoryReportsNoPreviousBranch(t *testing.T) {
 	git(t, repo, "checkout", "-q", "feat")
 
 	// The reflog holds three switches (main, feat, main); there is no fourth.
-	if _, err := PreviousIn(4, repo); !errors.Is(err, ErrNoPreviousBranch) {
+	if _, err := gitprevbranch.PreviousIn(4, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
 		t.Errorf("PreviousIn(4) error = %v, want ErrNoPreviousBranch", err)
 	}
-	if _, err := PreviousIn(100, repo); !errors.Is(err, ErrNoPreviousBranch) {
+	if _, err := gitprevbranch.PreviousIn(100, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
 		t.Errorf("PreviousIn(100) error = %v, want ErrNoPreviousBranch", err)
 	}
 }
@@ -106,14 +108,14 @@ func TestPreviousInOnDetachedHEAD(t *testing.T) {
 	git(t, repo, "checkout", "-q", "--detach", "HEAD~1")
 
 	// There is no current branch to report...
-	if _, err := PreviousIn(0, repo); !errors.Is(err, ErrNoPreviousBranch) {
+	if _, err := gitprevbranch.PreviousIn(0, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
 		t.Errorf("PreviousIn(0) error = %v, want ErrNoPreviousBranch", err)
 	}
 	// ...but the branch switches before the detach are still walkable, with
 	// the detached hop skipped exactly as git itself skips it: we left feat
 	// for the detached HEAD, and feat for main before that.
 	for step, want := range map[int]string{1: "feat", 2: "main"} {
-		got, err := PreviousIn(step, repo)
+		got, err := gitprevbranch.PreviousIn(step, repo)
 		if err != nil {
 			t.Fatalf("PreviousIn(%d) = %v", step, err)
 		}
@@ -128,7 +130,7 @@ func TestPreviousInRepositoryWithoutCommits(t *testing.T) {
 	git(t, dir, "init", "-q", "-b", "main")
 
 	for _, step := range []int{0, 1} {
-		if _, err := PreviousIn(step, dir); !errors.Is(err, ErrNoPreviousBranch) {
+		if _, err := gitprevbranch.PreviousIn(step, dir); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
 			t.Errorf("PreviousIn(%d) error = %v, want ErrNoPreviousBranch", step, err)
 		}
 	}
@@ -137,7 +139,7 @@ func TestPreviousInRepositoryWithoutCommits(t *testing.T) {
 func TestPreviousInRejectsNegativeIndex(t *testing.T) {
 	repo := newRepo(t)
 
-	if _, err := PreviousIn(-1, repo); !errors.Is(err, ErrInvalidIndex) {
+	if _, err := gitprevbranch.PreviousIn(-1, repo); !errors.Is(err, gitprevbranch.ErrInvalidIndex) {
 		t.Errorf("PreviousIn(-1) error = %v, want ErrInvalidIndex", err)
 	}
 }
@@ -145,10 +147,10 @@ func TestPreviousInRejectsNegativeIndex(t *testing.T) {
 func TestPreviousInOutsideARepository(t *testing.T) {
 	notARepo := t.TempDir()
 
-	if _, err := PreviousIn(1, notARepo); !errors.Is(err, ErrNotGitRepo) {
+	if _, err := gitprevbranch.PreviousIn(1, notARepo); !errors.Is(err, gitprevbranch.ErrNotGitRepo) {
 		t.Errorf("PreviousIn(1) error = %v, want ErrNotGitRepo", err)
 	}
-	if _, err := PreviousIn(0, notARepo); !errors.Is(err, ErrNotGitRepo) {
+	if _, err := gitprevbranch.PreviousIn(0, notARepo); !errors.Is(err, gitprevbranch.ErrNotGitRepo) {
 		t.Errorf("PreviousIn(0) error = %v, want ErrNotGitRepo", err)
 	}
 }
@@ -156,7 +158,7 @@ func TestPreviousInOutsideARepository(t *testing.T) {
 func TestPreviousInMissingDirectoryIsAGitFailure(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-	if _, err := PreviousIn(1, missing); !errors.Is(err, ErrGitCommand) {
+	if _, err := gitprevbranch.PreviousIn(1, missing); !errors.Is(err, gitprevbranch.ErrGitCommand) {
 		t.Errorf("PreviousIn(1) error = %v, want ErrGitCommand", err)
 	}
 }
@@ -171,7 +173,7 @@ func TestPreviousInFromASubdirectoryOfTheWorkTree(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	got, err := PreviousIn(1, sub)
+	got, err := gitprevbranch.PreviousIn(1, sub)
 	if err != nil {
 		t.Fatalf("PreviousIn(1) from a subdirectory = %v", err)
 	}
@@ -187,7 +189,7 @@ func TestPreviousUsesTheCurrentWorkingDirectory(t *testing.T) {
 	git(t, repo, "checkout", "-q", "main")
 	t.Chdir(repo)
 
-	got, err := Previous(1)
+	got, err := gitprevbranch.Previous(1)
 	if err != nil {
 		t.Fatalf("Previous(1) = %v", err)
 	}

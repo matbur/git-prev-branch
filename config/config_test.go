@@ -1,10 +1,12 @@
-package config
+package config_test
 
 import (
 	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/matbur/git-prev-branch/config"
 )
 
 // isolatedHome points HOME (and USERPROFILE, for Windows) at an empty
@@ -53,7 +55,7 @@ func repoConfig(root string) string {
 func TestLoadUsesBuiltInDefaultsWhenNothingExists(t *testing.T) {
 	isolatedHome(t)
 
-	cfg, err := Load("", t.TempDir())
+	cfg, err := config.Load("", t.TempDir())
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -69,7 +71,7 @@ func TestLoadExplicitPathThatDoesNotExistIsAnError(t *testing.T) {
 	isolatedHome(t)
 
 	missing := filepath.Join(t.TempDir(), "nope.yaml")
-	if _, err := Load(missing, ""); !errors.Is(err, ErrConfigNotFound) {
+	if _, err := config.Load(missing, ""); !errors.Is(err, config.ErrConfigNotFound) {
 		t.Errorf("Load(%q) error = %v, want ErrConfigNotFound", missing, err)
 	}
 }
@@ -80,7 +82,7 @@ func TestLoadMalformedFileIsAnError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	writeFile(t, path, "interactive: [unclosed\n")
 
-	if _, err := Load(path, ""); !errors.Is(err, ErrConfigMalformed) {
+	if _, err := config.Load(path, ""); !errors.Is(err, config.ErrConfigMalformed) {
 		t.Errorf("Load() error = %v, want ErrConfigMalformed", err)
 	}
 }
@@ -91,8 +93,8 @@ func TestLoadUnknownDefaultActionIsAnError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	writeFile(t, path, "interactive:\n  default_action: maybe\n")
 
-	_, err := Load(path, "")
-	if !errors.Is(err, ErrConfigMalformed) {
+	_, err := config.Load(path, "")
+	if !errors.Is(err, config.ErrConfigMalformed) {
 		t.Fatalf("Load() error = %v, want ErrConfigMalformed", err)
 	}
 }
@@ -103,7 +105,7 @@ func TestLoadNormalizesDefaultAction(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	writeFile(t, path, "interactive:\n  default_action: \"  AcCePt \"\n")
 
-	cfg, err := Load(path, "")
+	cfg, err := config.Load(path, "")
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -121,7 +123,7 @@ func TestLoadEmptyDefaultActionKeepsTheRejectDefault(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	writeFile(t, path, "interactive:\n  default_action: \"\"\n")
 
-	cfg, err := Load(path, "")
+	cfg, err := config.Load(path, "")
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -136,7 +138,7 @@ func TestLoadToleratesUnknownKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	writeFile(t, path, "future_section:\n  whatever: true\ninteractive:\n  default_action: accept\n")
 
-	cfg, err := Load(path, "")
+	cfg, err := config.Load(path, "")
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -164,7 +166,7 @@ func TestLoadPrecedence(t *testing.T) {
 		{"repository config wins over user config", "", "accept"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg, err := Load(tc.explicitPath, repo)
+			cfg, err := config.Load(tc.explicitPath, repo)
 			if err != nil {
 				t.Fatalf("Load() = %v", err)
 			}
@@ -178,7 +180,7 @@ func TestLoadPrecedence(t *testing.T) {
 	if err := os.Remove(repoConfig(repo)); err != nil {
 		t.Fatalf("remove repo config: %v", err)
 	}
-	cfg, err := Load("", repo)
+	cfg, err := config.Load("", repo)
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -188,7 +190,7 @@ func TestLoadPrecedence(t *testing.T) {
 
 	// ...and outside any repository the user-level one is still used.
 	writeFile(t, userConfig(home), "interactive:\n  default_action: accept\n")
-	cfg, err = Load("", t.TempDir())
+	cfg, err = config.Load("", t.TempDir())
 	if err != nil {
 		t.Fatalf("Load() outside a repository = %v", err)
 	}
@@ -206,7 +208,7 @@ func TestLoadRepositoryConfigReachedFromASubdirectory(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	cfg, err := Load("", sub)
+	cfg, err := config.Load("", sub)
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -222,7 +224,7 @@ func TestLoadWorktreeStyleGitFileCountsAsARoot(t *testing.T) {
 	writeFile(t, filepath.Join(root, ".git"), "gitdir: /somewhere/else/.git\n")
 	writeFile(t, repoConfig(root), "interactive:\n  default_action: accept\n")
 
-	cfg, err := Load("", root)
+	cfg, err := config.Load("", root)
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -236,7 +238,7 @@ func TestLoadMalformedRepositoryConfigIsNotSkipped(t *testing.T) {
 	repo := newRepo(t)
 	writeFile(t, repoConfig(repo), "interactive: [broken\n")
 
-	if _, err := Load("", repo); !errors.Is(err, ErrConfigMalformed) {
+	if _, err := config.Load("", repo); !errors.Is(err, config.ErrConfigMalformed) {
 		t.Errorf("Load() error = %v, want ErrConfigMalformed", err)
 	}
 }
