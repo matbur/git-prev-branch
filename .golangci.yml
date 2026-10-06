@@ -1,0 +1,13 @@
+# Configuration for golangci-lint v2 (the version CI pins).
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # This is a CLI: writing a diagnostic to stdout/stderr is best-effort.
+      # When the write fails (closed pipe, full disk) there is nothing useful
+      # left to do about it -- the exit code still carries the result.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln

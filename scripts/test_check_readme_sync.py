@@ -28,7 +28,7 @@ CASES = [
     (
         "dropped list item in PL",
         "README.pl.md",
-        "- [ ] Dodać testy jednostkowe i integracyjne\n",
+        "- [x] Dodać testy jednostkowe i integracyjne\n",
         "",
         True,
         ["structure drift", "-LI"],

@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/matbur/git-prev-branch?sort=semver)](https://github.com/matbur/git-prev-branch/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml)
-[![Go Build](https://img.shields.io/badge/Go%20Build-TBD-blue.svg)](https://github.com/matbur/git-prev-branch/actions)
+[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml)
 
 **[🇬🇧 English](README.md)** | [🇵🇱 Polski](README.pl.md)
 
@@ -18,13 +18,13 @@ A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you
 - **Flexible navigation**: Step back through your branch-switching history with a positional index (`0`, `1`, `2`, ...).
 - **Works from anywhere**: Target a Git repository in a different directory with the `--path` (`-p`) flag.
 - **Customizable behavior**: Configure interactive prompts and defaults via a YAML configuration file.
-- **Usable as a Go library**: Import `git-prev-branch` into your own Go tools (API to be finalized during implementation).
+- **Usable as a Go library**: Import `git-prev-branch` into your own Go tools — see [Use as a Go library](#use-as-a-go-library).
 
 ## Installation
 
 You can install `git-prev-branch` using one of the following methods:
 
-> **Note:** none of the methods below work yet — this repository currently contains no Go source and no `go.mod`. `go install` fails with an invalid-version error and `go build` with `cannot find main module`. They start working once the first release is published. Homebrew distribution is planned via a separate tap (`matbur/homebrew-tap`); the exact formula, tap setup, and release automation will be finalized as part of the release process.
+> **Note:** method 3 works today; methods 1 and 2 need something that does not exist yet — a published release. `brew install matbur/homebrew-tap/git-prev-branch` fails until the tap is created, and `go install github.com/matbur/git-prev-branch@latest` fails with an invalid-version error until the first tag is pushed. Homebrew distribution is planned via a separate tap (`matbur/homebrew-tap`); the exact formula, tap setup, and release automation will be finalized as part of the release process.
 
 ### 1. Homebrew (recommended)
 
@@ -220,14 +220,14 @@ A repository-level file is shared with everyone who clones the repository: commi
 
 If `--config` (`-c`) names a file that does not exist, the run fails with exit code `1`. The two default locations are looked up opportunistically — when neither exists, the built-in defaults apply. A malformed file is an error no matter which location it came from.
 
-### Example structure (planned)
+### Example structure
 
-The following is a representative example of the intended configuration structure. The exact format and any additional keys are **still to be determined** during implementation; `default_action` is pinned because the exit codes above depend on it.
+The following is the configuration structure as implemented today. `default_action` is pinned because the exit codes above depend on it; additional keys may be introduced in future versions.
 
 ```yaml
 interactive:
   # Behavior when the confirmation prompt is shown
-  # Possible values (planned): "accept", "reject", or similar
+  # Possible values: "accept", "reject"
   default_action: reject
 ```
 
@@ -244,9 +244,9 @@ interactive:
 import gpb "github.com/matbur/git-prev-branch/gitprevbranch"
 ```
 
-### Usage (example outline)
+### Usage
 
-The public API surface is **not yet finalized** and may change during implementation. Below is an illustrative, non-binding example of the intended usage:
+The library exposes two functions in the `gitprevbranch` package: `Previous` resolves against the current working directory, `PreviousIn` against a directory you name. Both return the branch `n` steps back, with `n = 0` meaning the current branch:
 
 ```go
 prev, err := gpb.Previous(1) // Get previous branch (1 step back)
@@ -256,13 +256,13 @@ if err != nil {
 fmt.Println(prev)
 ```
 
-> **Note:** The command lives in the repository root as `package main`, which cannot be imported, so the library is planned as a subpackage: `github.com/matbur/git-prev-branch/gitprevbranch`. Final function signatures, types, and error handling will be defined and documented during the implementation phase.
+> **Note:** The command lives in the repository root as `package main`, which cannot be imported, so the library is the subpackage `github.com/matbur/git-prev-branch/gitprevbranch`. Failures are reported as sentinel values — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — testable with `errors.Is`.
 
 ## Development
 
 ### Prerequisites
 
-- [Go](https://go.dev/) (version to be defined during implementation)
+- [Go](https://go.dev/) 1.24 or newer
 - [Git](https://git-scm.com/)
 
 ### Local development setup
@@ -272,24 +272,24 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-From here, you can explore, build, or iterate on the project once the source code is added.
+The command lives in the repository root as `main.go`, the library in `gitprevbranch/`, and configuration handling in `config/`; each package keeps its tests next to it.
 
-> **Note:** This repository currently contains no source code yet — only this README, its Polish translation `README.pl.md`, and the docs tooling under `scripts/` and `Makefile` (`make check` verifies that both READMEs stay in sync). Source code, tests, and Go build tooling will be added in subsequent commits.
+> **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and both README checks — and `make help` lists every available target.
 
 ## Testing
 
-The project is planned to include comprehensive automated testing to ensure correctness and reliability:
+The test suite covers the tool end to end:
 
 - **Unit tests** – Verify core logic in isolation (branch history resolution, argument parsing, configuration handling, etc.).
 - **Integration tests** – Validate behavior against real Git repositories to cover realistic workflows.
 
-> **Note:** Test structure, frameworks, and coverage targets will be determined during implementation.
+> **Note:** the tests use only the standard `testing` package and run against real, temporary Git repositories; start them with `go test ./...` or `make test`.
 
 ## Quality & Automation
 
-To maintain high code quality and streamline releases, the following automation is planned:
+To maintain high code quality and streamline releases, the project runs the following automation:
 
-| Area | Planned Approach | Benefits |
+| Area | Approach | Benefits |
 |---|---|---|
 | **Code CI** | GitHub Actions workflows running tests, linting, and cross-compilation on every push and pull request. | Early detection of regressions and consistent quality checks. |
 | **Linting** | Static analysis and style checks (e.g. `golangci-lint`) to enforce Go best practices. | Cleaner, more maintainable codebase. |
@@ -297,19 +297,19 @@ To maintain high code quality and streamline releases, the following automation 
 | **Release publishing** | Automated GitHub Releases (including changelogs and prebuilt binaries). | Simple, predictable distribution. |
 | **Homebrew preparation** | Automated updates to the tap formula as part of the release pipeline. | Seamless updates for Homebrew users. |
 
-> **Note:** The exact workflow implementations, tool choices, and triggers are still to be finalized.
+> **Note:** the code CI, linting and cross-compilation jobs live in `.github/workflows/ci.yml`; release publishing and the Homebrew tap are still to come.
 
 ## Roadmap
 
-- [ ] Implement core logic to determine previous branch from Git history
-- [ ] Add CLI argument parsing (positional index and flags)
-- [ ] Implement script-friendly output (stdout/stderr separation and TTY detection for safe use in `$(...)` and pipes)
-- [ ] Implement `--yes`/`-y` to accept the detection without prompting
-- [ ] Add support for custom repository path (`--path`/`-p`)
-- [ ] Implement configuration file support (repository + user locations, `--config`/`-c` override) with interactive defaults
-- [ ] Define and stabilize the public Go library API (`github.com/matbur/git-prev-branch/gitprevbranch`)
-- [ ] Add unit and integration tests
-- [ ] Set up CI (linting, tests, multi-platform builds)
+- [x] Implement core logic to determine previous branch from Git history
+- [x] Add CLI argument parsing (positional index and flags)
+- [x] Implement script-friendly output (stdout/stderr separation and TTY detection for safe use in `$(...)` and pipes)
+- [x] Implement `--yes`/`-y` to accept the detection without prompting
+- [x] Add support for custom repository path (`--path`/`-p`)
+- [x] Implement configuration file support (repository + user locations, `--config`/`-c` override) with interactive defaults
+- [x] Define and stabilize the public Go library API (`github.com/matbur/git-prev-branch/gitprevbranch`)
+- [x] Add unit and integration tests
+- [x] Set up CI (linting, tests, multi-platform builds)
 - [ ] Prepare and publish Homebrew tap and formula
 - [ ] Create first stable release with binaries
 
@@ -322,13 +322,13 @@ Contributions are welcome! If you'd like to propose changes, report issues, or s
 3. Make your changes with clear, well-documented commits.
 4. Submit a pull request describing the motivation and scope of your changes.
 
-Please follow standard Go conventions and keep changes consistent with the project's goals and scope. If you edit `README.md`, mirror the change in `README.pl.md` and run the same checks CI runs before pushing:
+Please follow standard Go conventions and keep changes consistent with the project's goals and scope. If you edit `README.md`, mirror the change in `README.pl.md` and run the checks before pushing:
 
 ```bash
 make check
 ```
 
-`make check` runs both `scripts/check_readme_sync.py` and `scripts/test_check_readme_sync.py`, which together cover everything CI runs. Running only the first is not enough: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
+`make check` runs `gofmt`, `go vet`, the Go tests and both README checks — `scripts/check_readme_sync.py` and `scripts/test_check_readme_sync.py`. That is everything CI runs except the `golangci-lint` job (`make lint`, if you have golangci-lint v2 installed). The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
 
 ## License
 
