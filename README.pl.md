@@ -276,7 +276,7 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-Polecenie znajduje się w `cmd/git-prev-branch/`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `config/`; testy każdego pakietu leżą obok niego.
+Polecenie znajduje się w `cmd/git-prev-branch/`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `internal/config/`; testy każdego pakietu leżą obok niego.
 
 > **Uwaga:** `make check` uruchamia każdą lokalną kontrolę — `gofmt`, `go vet`, testy Go i obie kontrole README — a `make help` wypisuje wszystkie dostępne cele.
 

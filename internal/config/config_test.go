@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matbur/git-prev-branch/config"
+	"github.com/matbur/git-prev-branch/internal/config"
 )
 
 // isolatedHome points HOME (and USERPROFILE, for Windows) at an empty

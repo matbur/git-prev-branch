@@ -276,7 +276,7 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-The command lives in `cmd/git-prev-branch/`, the library in `gitprevbranch/`, and configuration handling in `config/`; each package keeps its tests next to it.
+The command lives in `cmd/git-prev-branch/`, the library in `gitprevbranch/`, and configuration handling in `internal/config/`; each package keeps its tests next to it.
 
 > **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and both README checks — and `make help` lists every available target.
 

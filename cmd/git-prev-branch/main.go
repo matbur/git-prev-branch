@@ -15,8 +15,8 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/matbur/git-prev-branch/config"
 	"github.com/matbur/git-prev-branch/gitprevbranch"
+	"github.com/matbur/git-prev-branch/internal/config"
 	"golang.org/x/term"
 )
 
