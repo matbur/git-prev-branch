@@ -24,7 +24,7 @@ A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you
 
 You can install `git-prev-branch` using one of the following methods:
 
-> **Note:** method 3 works today; methods 1 and 2 need something that does not exist yet — a published release. `brew install matbur/homebrew-tap/git-prev-branch` fails until the tap is created, and `go install github.com/matbur/git-prev-branch@latest` fails with an invalid-version error until the first tag is pushed. Homebrew distribution is planned via a separate tap (`matbur/homebrew-tap`); the exact formula, tap setup, and release automation will be finalized as part of the release process.
+> **Note:** method 3 works today; methods 1 and 2 need something that does not exist yet — a published release. `brew install matbur/homebrew-tap/git-prev-branch` fails until the tap is created, and `go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest` fails with an invalid-version error until the first tag is pushed. Homebrew distribution is planned via a separate tap (`matbur/homebrew-tap`); the exact formula, tap setup, and release automation will be finalized as part of the release process.
 
 ### 1. Homebrew (recommended)
 
@@ -37,7 +37,7 @@ brew install matbur/homebrew-tap/git-prev-branch
 Requires [Go](https://go.dev/dl/) installed on your system.
 
 ```bash
-go install github.com/matbur/git-prev-branch@latest
+go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 ```
 
 This will install the binary to your `$GOPATH/bin` (or `$GOBIN`). Make sure it's included in your `PATH`.
@@ -256,7 +256,7 @@ if err != nil {
 fmt.Println(prev)
 ```
 
-> **Note:** The command lives in the repository root as `package main`, which cannot be imported, so the library is the subpackage `github.com/matbur/git-prev-branch/gitprevbranch`. Failures are reported as sentinel values — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — testable with `errors.Is`.
+> **Note:** The command lives in the `cmd/git-prev-branch` package as `package main`, which cannot be imported, so the library is the subpackage `github.com/matbur/git-prev-branch/gitprevbranch`. Failures are reported as sentinel values — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — testable with `errors.Is`.
 
 ## Development
 
@@ -272,7 +272,7 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-The command lives in the repository root as `main.go`, the library in `gitprevbranch/`, and configuration handling in `config/`; each package keeps its tests next to it.
+The command lives in `cmd/git-prev-branch/`, the library in `gitprevbranch/`, and configuration handling in `config/`; each package keeps its tests next to it.
 
 > **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and both README checks — and `make help` lists every available target.
 

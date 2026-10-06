@@ -5,7 +5,7 @@ help: ## Show this help
 
 .PHONY: build
 build: ## Build the git-prev-branch binary into the repository root
-	go build -o git-prev-branch .
+	go build -o git-prev-branch ./cmd/git-prev-branch
 
 .PHONY: test
 test: ## Run the Go test suite

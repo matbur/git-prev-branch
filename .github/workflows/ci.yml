@@ -83,4 +83,4 @@ jobs:
         run: |
           out=dist/git-prev-branch
           if [ "$GOOS" = "windows" ]; then out=$out.exe; fi
-          go build -trimpath -o "$out" .
+          go build -trimpath -o "$out" ./cmd/git-prev-branch

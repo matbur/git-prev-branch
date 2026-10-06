@@ -141,7 +141,16 @@ func TestMain(m *testing.M) {
 	}
 	binaryPath = filepath.Join(tmp, name)
 
-	build := exec.Command("go", "build", "-o", binaryPath, ".")
+	// The tests run in the package directory, but the binary is built from
+	// the module root, so "./cmd/git-prev-branch" resolves there.
+	root, err := moduleRoot()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "module root: %v\n", err)
+		_ = os.RemoveAll(tmp)
+		os.Exit(1)
+	}
+	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/git-prev-branch")
+	build.Dir = root
 	if out, err := build.CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "go build: %v\n%s", err, out)
 		_ = os.RemoveAll(tmp)
@@ -151,6 +160,24 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	_ = os.RemoveAll(tmp)
 	os.Exit(code)
+}
+
+// moduleRoot walks up from the current directory to the one holding go.mod.
+func moduleRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("no go.mod above %s", dir)
+		}
+		dir = parent
+	}
 }
 
 // e2eRepo builds a repository whose branch-switch history reads

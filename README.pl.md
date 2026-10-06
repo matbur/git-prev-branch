@@ -24,7 +24,7 @@ Lekkie narzędzie CLI dla użytkowników Gita, napisane w Go. `git-prev-branch` 
 
 Możesz zainstalować `git-prev-branch` jedną z poniższych metod:
 
-> **Uwaga:** metoda 3 działa już dziś; metody 1 i 2 wymagają czegoś, czego jeszcze nie ma — opublikowanego wydania. `brew install matbur/homebrew-tap/git-prev-branch` nie działa do czasu utworzenia tapu, a `go install github.com/matbur/git-prev-branch@latest` do czasu pierwszego tagu kończy się błędem o niewłaściwej wersji. Dystrybucja przez Homebrew jest planowana za pośrednictwem osobnego tapu (`matbur/homebrew-tap`); dokładna formuła, konfiguracja tapu i automatyzacja wydania zostaną ustalone w ramach procesu wydania.
+> **Uwaga:** metoda 3 działa już dziś; metody 1 i 2 wymagają czegoś, czego jeszcze nie ma — opublikowanego wydania. `brew install matbur/homebrew-tap/git-prev-branch` nie działa do czasu utworzenia tapu, a `go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest` do czasu pierwszego tagu kończy się błędem o niewłaściwej wersji. Dystrybucja przez Homebrew jest planowana za pośrednictwem osobnego tapu (`matbur/homebrew-tap`); dokładna formuła, konfiguracja tapu i automatyzacja wydania zostaną ustalone w ramach procesu wydania.
 
 ### 1. Homebrew (zalecany sposób)
 
@@ -37,7 +37,7 @@ brew install matbur/homebrew-tap/git-prev-branch
 Wymaga zainstalowanego w systemie [Go](https://go.dev/dl/).
 
 ```bash
-go install github.com/matbur/git-prev-branch@latest
+go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 ```
 
 Zainstaluje to plik binarny do katalogu `$GOPATH/bin` (lub `$GOBIN`). Upewnij się, że katalog ten znajduje się w `PATH`.
@@ -256,7 +256,7 @@ if err != nil {
 fmt.Println(prev)
 ```
 
-> **Uwaga:** polecenie mieszka w katalogu głównym repozytorium jako `package main`, którego nie da się zaimportować, więc biblioteką jest podpakiet `github.com/matbur/git-prev-branch/gitprevbranch`. Błędy są zgłaszane jako wartości strażnicze — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — sprawdzalne przez `errors.Is`.
+> **Uwaga:** polecenie mieszka w pakiecie `cmd/git-prev-branch` jako `package main`, którego nie da się zaimportować, więc biblioteką jest podpakiet `github.com/matbur/git-prev-branch/gitprevbranch`. Błędy są zgłaszane jako wartości strażnicze — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — sprawdzalne przez `errors.Is`.
 
 ## Rozwój
 
@@ -272,7 +272,7 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-Polecenie znajduje się w katalogu głównym jako `main.go`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `config/`; testy każdego pakietu leżą obok niego.
+Polecenie znajduje się w `cmd/git-prev-branch/`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `config/`; testy każdego pakietu leżą obok niego.
 
 > **Uwaga:** `make check` uruchamia każdą lokalną kontrolę — `gofmt`, `go vet`, testy Go i obie kontrole README — a `make help` wypisuje wszystkie dostępne cele.
 
