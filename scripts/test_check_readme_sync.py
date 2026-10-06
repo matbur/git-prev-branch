@@ -68,8 +68,8 @@ CASES = [
     (
         "heading level changed in PL",
         "README.pl.md",
-        "### 1. Homebrew (zalecany sposób)",
-        "## 1. Homebrew (zalecany sposób)",
+        "### 1. Instalacja przez Go",
+        "## 1. Instalacja przez Go",
         True,
         ["structure drift"],
     ),

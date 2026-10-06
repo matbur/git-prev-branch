@@ -28,15 +28,9 @@ Lekkie narzędzie CLI dla użytkowników Gita, napisane w Go. `git-prev-branch` 
 
 Możesz zainstalować `git-prev-branch` jedną z poniższych metod:
 
-> **Uwaga:** metoda 3 działa już dziś; metody 1 i 2 wymagają czegoś, czego jeszcze nie ma — opublikowanego wydania. `brew install matbur/homebrew-tap/git-prev-branch` nie działa do czasu utworzenia tapu, a `go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest` do czasu pierwszego tagu kończy się błędem o niewłaściwej wersji. Dystrybucja przez Homebrew jest planowana za pośrednictwem osobnego tapu (`matbur/homebrew-tap`); dokładna formuła, konfiguracja tapu i automatyzacja wydania zostaną ustalone w ramach procesu wydania.
+> **Uwaga:** dystrybucja przez Homebrew jest planowana na później przez osobny repo-tap (`matbur/homebrew-tap`); zobacz Plan rozwoju.
 
-### 1. Homebrew (zalecany sposób)
-
-```bash
-brew install matbur/homebrew-tap/git-prev-branch
-```
-
-### 2. Instalacja przez Go
+### 1. Instalacja przez Go
 
 Wymaga zainstalowanego w systemie [Go](https://go.dev/dl/).
 
@@ -46,7 +40,7 @@ go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 
 Zainstaluje to plik binarny do katalogu `$GOPATH/bin` (lub `$GOBIN`). Upewnij się, że katalog ten znajduje się w `PATH`.
 
-### 3. Ręczna kompilacja ze źródeł
+### 2. Ręczna kompilacja ze źródeł
 
 ```bash
 git clone https://github.com/matbur/git-prev-branch.git
@@ -303,7 +297,7 @@ Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z nas
 | **Publikowanie wydań** | Zautomatyzowane GitHub Releases (wraz z changelogami i gotowymi plikami binarnymi). | Prosta i przewidywalna dystrybucja. |
 | **Przygotowanie Homebrew** | Automatyczne aktualizacje formuły w tapie w ramach potoku wydania. | Bezproblemowe aktualizacje dla użytkowników Homebrew. |
 
-> **Uwaga:** joby CI kodu, lintingu i kompilacji krzyżowej znajdują się w pliku `.github/workflows/ci.yaml`; publikowanie wydań i tap Homebrew powstaną później.
+> **Uwaga:** joby CI kodu, lintingu, kompilacji krzyżowej i wydań znajdują się w pliku `.github/workflows/ci.yaml`; tap Homebrew powstaną później.
 
 ## Plan rozwoju
 
