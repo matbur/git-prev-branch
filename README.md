@@ -3,8 +3,8 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/matbur/git-prev-branch.svg)](https://pkg.go.dev/github.com/matbur/git-prev-branch)
 [![Release](https://img.shields.io/github/v/release/matbur/git-prev-branch?sort=semver)](https://github.com/matbur/git-prev-branch/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml)
-[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml)
+[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml)
+[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml)
 
 <p align="center">
   <img src="assets/icon.svg" alt="git-prev-branch icon" width="120">
@@ -299,10 +299,11 @@ To maintain high code quality and streamline releases, the project runs the foll
 | **Code CI** | GitHub Actions workflows running tests, linting, and cross-compilation on every push and pull request. | Early detection of regressions and consistent quality checks. |
 | **Linting** | Static analysis and style checks (e.g. `golangci-lint`) to enforce Go best practices. | Cleaner, more maintainable codebase. |
 | **Multi-platform builds** | Automated cross-compilation for Linux, macOS, and Windows (amd64/arm64). | Broad compatibility for end users. |
+| **Versioning tags** | A new `vX.Y.Z` tag on every merge to `main`, bumped by the merged PR's `major`/`minor`/`patch release` label (`patch` when none). | Predictable release points and simple, incremental versioning. |
 | **Release publishing** | Automated GitHub Releases (including changelogs and prebuilt binaries). | Simple, predictable distribution. |
 | **Homebrew preparation** | Automated updates to the tap formula as part of the release pipeline. | Seamless updates for Homebrew users. |
 
-> **Note:** the code CI, linting and cross-compilation jobs live in `.github/workflows/ci.yml`; release publishing and the Homebrew tap are still to come.
+> **Note:** the code CI, linting and cross-compilation jobs live in `.github/workflows/ci.yaml`; release publishing and the Homebrew tap are still to come.
 
 ## Roadmap
 

@@ -35,6 +35,10 @@ fmt-check: ## Fail if any Go source is not gofmt-clean
 vet: ## Run go vet over every package
 	go vet ./...
 
+.PHONY: next-tag
+next-tag: ## Print the vX.Y.Z tag to create after the next merge to main
+	@python3 scripts/next_tag.py
+
 .PHONY: lint
 lint: ## Run golangci-lint (needs golangci-lint v2 installed)
 	golangci-lint run ./...
@@ -48,4 +52,4 @@ check-readme: ## Verify README.pl.md is in sync with README.md
 
 .PHONY: test-scripts
 test-scripts: ## Run the self-tests for the scripts/ tooling
-	python3 scripts/test_check_readme_sync.py
+	python3 scripts/test_check_readme_sync.py && python3 scripts/test_next_tag.py

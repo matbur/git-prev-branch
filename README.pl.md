@@ -3,8 +3,8 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/matbur/git-prev-branch.svg)](https://pkg.go.dev/github.com/matbur/git-prev-branch)
 [![Release](https://img.shields.io/github/v/release/matbur/git-prev-branch?sort=semver)](https://github.com/matbur/git-prev-branch/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml)
-[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml)
+[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml)
+[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml)
 
 <p align="center">
   <img src="assets/icon.svg" alt="git-prev-branch icon" width="120">
@@ -299,10 +299,11 @@ Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z nas
 | **CI dla kodu** | Workflowy GitHub Actions uruchamiające testy, linting i kompilację krzyżową przy każdym pushu i pull requeście. | Wczesne wykrywanie regresji i spójna kontrola jakości. |
 | **Linting** | Analiza statyczna i kontrola stylu (np. `golangci-lint`) egzekwujące najlepsze praktyki Go. | Czystsza, łatwiejsza w utrzymaniu baza kodu. |
 | **Buildy wieloplatformowe** | Automatyczna kompilacja krzyżowa dla Linuksa, macOS i Windows (amd64/arm64). | Szeroka zgodność dla użytkowników końcowych. |
+| **Tagi wersji** | Nowy tag `vX.Y.Z` przy każdym mergu do `main`, podbijany labelką `major`/`minor`/`patch release` zmerged PR (`patch`, gdy braku brak). | Przewidywalne punkty wydania i proste, przyrostowe wersjonowanie. |
 | **Publikowanie wydań** | Zautomatyzowane GitHub Releases (wraz z changelogami i gotowymi plikami binarnymi). | Prosta i przewidywalna dystrybucja. |
 | **Przygotowanie Homebrew** | Automatyczne aktualizacje formuły w tapie w ramach potoku wydania. | Bezproblemowe aktualizacje dla użytkowników Homebrew. |
 
-> **Uwaga:** joby CI kodu, lintingu i kompilacji krzyżowej znajdują się w pliku `.github/workflows/ci.yml`; publikowanie wydań i tap Homebrew powstaną później.
+> **Uwaga:** joby CI kodu, lintingu i kompilacji krzyżowej znajdują się w pliku `.github/workflows/ci.yaml`; publikowanie wydań i tap Homebrew powstaną później.
 
 ## Plan rozwoju
 
