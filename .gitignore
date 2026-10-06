@@ -38,3 +38,5 @@ __pycache__/
 
 # Binary produced by `make build` in the repository root
 /git-prev-branch
+
+AGENTS.md
