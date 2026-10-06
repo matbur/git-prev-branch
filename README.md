@@ -6,6 +6,10 @@
 [![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml)
 [![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yml)
 
+<p align="center">
+  <img src="assets/icon.svg" alt="git-prev-branch icon" width="120">
+</p>
+
 **[🇬🇧 English](README.md)** | [🇵🇱 Polski](README.pl.md)
 
 A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you quickly determine which branch you switched from to reach your current branch—perfect for automatically setting the base branch when creating pull requests.
