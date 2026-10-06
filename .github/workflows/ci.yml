@@ -1,8 +1,9 @@
 name: ci
 
 # Everything the Go side promises: it formats, vets, lints, tests on all three
-# platforms, and cross-compiles every release target. Keep it in sync with
-# `make check`, which runs the same Go and docs checks locally.
+# platforms, and cross-compiles every release target. Every step calls the
+# same Makefile targets a developer runs locally (`make help` lists them), so
+# local and CI behaviour cannot drift apart.
 
 on:
   push:
@@ -12,6 +13,13 @@ on:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    # Windows runners ship only MinGW make, which falls back to cmd.exe when
+    # no POSIX shell is on PATH; a bash step gives it the sh.exe the recipes
+    # below need.
+    shell: bash
 
 jobs:
   test:
@@ -28,11 +36,11 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: go vet
-        run: go vet ./...
+      - name: vet
+        run: make vet
 
-      - name: go test
-        run: go test ./...
+      - name: test
+        run: make test
 
   lint:
     name: lint
@@ -47,18 +55,16 @@ jobs:
       - name: gofmt
         # Windows checkouts can carry CRLF endings, so formatting is checked
         # here, on one platform, instead of inside the test matrix.
-        run: |
-          files=$(gofmt -l .)
-          if [ -n "$files" ]; then
-            echo "gofmt needed on:"
-            echo "$files"
-            exit 1
-          fi
+        run: make fmt-check
 
-      - name: golangci-lint
+      - name: install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13
+          install-only: true
+
+      - name: golangci-lint
+        run: make lint
 
   build:
     name: build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -80,7 +86,4 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: |
-          out=dist/git-prev-branch
-          if [ "$GOOS" = "windows" ]; then out=$out.exe; fi
-          go build -trimpath -o "$out" ./cmd/git-prev-branch
+        run: make build-dist

@@ -7,6 +7,13 @@ help: ## Show this help
 build: ## Build the git-prev-branch binary into the repository root
 	go build -o git-prev-branch ./cmd/git-prev-branch
 
+.PHONY: build-dist
+build-dist: ## Build dist/git-prev-branch for the current GOOS/GOARCH with -trimpath
+	@mkdir -p dist
+	@out=dist/git-prev-branch; \
+	if [ "$$GOOS" = "windows" ]; then out=$$out.exe; fi; \
+	go build -trimpath -o "$$out" ./cmd/git-prev-branch
+
 .PHONY: test
 test: ## Run the Go test suite
 	go test ./...

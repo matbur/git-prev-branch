@@ -3,7 +3,8 @@ name: readme-sync
 # Guards the invariant that README.pl.md stays structurally identical to
 # README.md: same headings, same lists and tables, same internal anchors, and
 # byte-identical fenced code blocks. Prose is expected to differ -- it is a
-# translation. See scripts/check_readme_sync.py.
+# translation. See scripts/check_readme_sync.py. Both steps run through the
+# same Makefile targets as `make check` does locally.
 
 on:
   push:
@@ -23,7 +24,7 @@ jobs:
 
       # A checker that cannot fail proves nothing, so prove it can first.
       - name: Self-test the checker
-        run: python3 scripts/test_check_readme_sync.py
+        run: make test-scripts
 
       - name: Check the real files
-        run: python3 scripts/check_readme_sync.py
+        run: make check-readme
