@@ -2,6 +2,7 @@ package gitprevbranch_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -179,6 +180,28 @@ func TestPreviousInFromASubdirectoryOfTheWorkTree(t *testing.T) {
 	}
 	if got != "feat" {
 		t.Errorf("PreviousIn(1) from a subdirectory = %q, want %q", got, "feat")
+	}
+}
+
+func TestDebugfReportsTheGitCommands(t *testing.T) {
+	repo := newRepo(t)
+
+	var got []string
+	gitprevbranch.Debugf = func(format string, args ...any) {
+		got = append(got, fmt.Sprintf(format, args...))
+	}
+	defer func() { gitprevbranch.Debugf = nil }()
+
+	if _, err := gitprevbranch.PreviousIn(0, repo); err != nil {
+		t.Fatalf("PreviousIn(0) = %v", err)
+	}
+
+	joined := strings.Join(got, "\n")
+	if !strings.Contains(joined, "running: git -C ") || !strings.Contains(joined, "rev-parse") {
+		t.Errorf("debug lines = %q, want the built git command", joined)
+	}
+	if !strings.HasSuffix(joined, " ok") {
+		t.Errorf("debug lines = %q, want a success line", joined)
 	}
 }
 

@@ -37,6 +37,18 @@ func (i Interactive) AcceptsByDefault() bool {
 	return i.DefaultAction == "accept"
 }
 
+// Debugf, when set, receives a diagnostic line for every config file location
+// considered and for the one finally used. It exists for --debug style flags
+// in command-line tools built on this package; a nil Debugf disables the
+// output. Like fmt.Printf, it is called with a format string and arguments.
+var Debugf func(format string, args ...any)
+
+func debugf(format string, args ...any) {
+	if Debugf != nil {
+		Debugf(format, args...)
+	}
+}
+
 // Load loads configuration from the appropriate location.
 // Precedence: --config <path> (if specified), <repoRoot>/.config/git-prev-branch/config.yaml,
 // ~/.config/git-prev-branch/config.yaml. The built-in defaults are used if no config file exists.
@@ -51,14 +63,17 @@ func Load(explicitPath string, repoPath string) (*Config, error) {
 		if err := loadFromFile(path, cfg); err != nil {
 			return nil, err
 		}
+		debugf("using config file %s", path)
 		return cfg, nil
 	}
 
 	// 2./3. Otherwise the first default location that exists wins.
 	for _, path := range defaultPaths(repoPath) {
+		debugf("checking config file %s", path)
 		err := loadFromFile(path, cfg)
 		switch {
 		case err == nil:
+			debugf("using config file %s", path)
 			return cfg, nil
 		case errors.Is(err, ErrConfigNotFound):
 			continue // this location simply does not exist
@@ -68,6 +83,7 @@ func Load(explicitPath string, repoPath string) (*Config, error) {
 	}
 
 	// No config file found, use the built-in defaults.
+	debugf("no config file found, using built-in defaults")
 	return cfg, nil
 }
 

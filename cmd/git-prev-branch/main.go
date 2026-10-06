@@ -40,6 +40,7 @@ Flags:
   -p, --path PATH     path to the Git repository to analyze
                       (default: the current working directory)
   -y, --yes           accept the detected branch without prompting
+  -d, --debug         print decisions and git commands to stderr
   -h, --help          show this help
 
 stdout receives only the branch name; prompts and diagnostics go to stderr.
@@ -52,6 +53,7 @@ type cli struct {
 	Config string `short:"c" help:"path to a custom configuration file"`
 	Path   string `short:"p" help:"path to the Git repository to analyze (default: the current working directory)"`
 	Yes    bool   `short:"y" help:"accept the detected branch without prompting"`
+	Debug  bool   `short:"d" help:"print decisions and git commands to stderr"`
 	Step   int    `arg:"" optional:"" default:"1" help:"how many steps back through the branch-switch history (0 is the current branch)"`
 }
 
@@ -99,24 +101,44 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 		return exitError
 	}
 
+	// With --debug the packages log the decisions whose inputs live behind
+	// their API: which config file won, and which git command was run. The
+	// hook writes to errOut, so stdout keeps carrying only the branch name.
+	dbg := func(format string, args ...any) {
+		if opts.Debug {
+			fmt.Fprintf(errOut, "debug: "+format+"\n", args...)
+		}
+	}
+	gitprevbranch.Debugf = dbg
+	config.Debugf = dbg
+	defer func() {
+		gitprevbranch.Debugf = nil
+		config.Debugf = nil
+	}()
+
 	cfg, err := config.Load(opts.Config, opts.Path)
 	if err != nil {
 		fmt.Fprintf(errOut, "error: %v\n", err)
 		return exitError
 	}
 
+	dbg("resolving branch %d step(s) back", opts.Step)
 	branch, err := gitprevbranch.PreviousIn(opts.Step, opts.Path)
 	if err != nil {
 		fmt.Fprintf(errOut, "error: %v\n", err)
 		return exitError
 	}
+	dbg("previous branch: %s", branch)
 
 	// The prompt is shown exactly when stdin is an interactive terminal and
 	// --yes was not passed; every other case prints the branch immediately.
 	if !opts.Yes && term.IsTerminal(int(in.Fd())) {
+		dbg("showing confirmation prompt (default action: %s)", cfg.Interactive.DefaultAction)
 		if !confirm(in, errOut, branch, cfg.Interactive.AcceptsByDefault()) {
 			return exitAbort
 		}
+	} else {
+		dbg("skipping confirmation prompt (default action: %s)", cfg.Interactive.DefaultAction)
 	}
 
 	fmt.Fprintln(out, branch)

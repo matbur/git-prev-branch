@@ -2,8 +2,10 @@ package config_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/matbur/git-prev-branch/internal/config"
@@ -144,6 +146,50 @@ func TestLoadToleratesUnknownKeys(t *testing.T) {
 	}
 	if cfg.Interactive.DefaultAction != "accept" {
 		t.Errorf("default_action = %q, want %q", cfg.Interactive.DefaultAction, "accept")
+	}
+}
+
+func TestLoadDebugfReportsTheChosenLocation(t *testing.T) {
+	home := isolatedHome(t)
+	repo := newRepo(t)
+	writeFile(t, repoConfig(repo), "interactive:\n  default_action: accept\n")
+	writeFile(t, userConfig(home), "interactive:\n  default_action: reject\n")
+
+	var got []string
+	config.Debugf = func(format string, args ...any) {
+		got = append(got, fmt.Sprintf(format, args...))
+	}
+	defer func() { config.Debugf = nil }()
+
+	if _, err := config.Load("", repo); err != nil {
+		t.Fatalf("Load() = %v", err)
+	}
+
+	joined := strings.Join(got, "\n")
+	if !strings.Contains(joined, "checking config file "+repoConfig(repo)) {
+		t.Errorf("debug lines = %q, want a check of the repo location", joined)
+	}
+	if !strings.Contains(joined, "using config file "+repoConfig(repo)) {
+		t.Errorf("debug lines = %q, want the repo location reported as used", joined)
+	}
+}
+
+func TestLoadDebugfReportsDefaultsWhenNothingExists(t *testing.T) {
+	isolatedHome(t)
+
+	var got []string
+	config.Debugf = func(format string, args ...any) {
+		got = append(got, fmt.Sprintf(format, args...))
+	}
+	defer func() { config.Debugf = nil }()
+
+	if _, err := config.Load("", t.TempDir()); err != nil {
+		t.Fatalf("Load() = %v", err)
+	}
+
+	joined := strings.Join(got, "\n")
+	if !strings.Contains(joined, "no config file found, using built-in defaults") {
+		t.Errorf("debug lines = %q, want a defaults line", joined)
 	}
 }
 

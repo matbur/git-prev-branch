@@ -14,6 +14,12 @@ import (
 	"strings"
 )
 
+// Debugf, when set, receives a diagnostic line for every git command the
+// package runs and its outcome. It exists for --debug style flags in
+// command-line tools built on this package; a nil Debugf disables the output.
+// Like fmt.Printf, it is called with a format string and arguments.
+var Debugf func(format string, args ...any)
+
 var (
 	// ErrNotGitRepo indicates the given directory is not inside a Git work tree.
 	ErrNotGitRepo = errors.New("not a git repository")
@@ -95,12 +101,27 @@ func firstLine(s string) string {
 
 // runGit runs git in dir and returns its separated stdout and stderr.
 func runGit(dir string, args ...string) (stdout, stderr string, err error) {
-	cmd := exec.Command("git", append([]string{"-C", pathOrCurrent(dir)}, args...)...)
+	dir = pathOrCurrent(dir)
+	display := fmt.Sprintf("git -C %q %s", dir, strings.Join(args, " "))
+	debugf("running: %s", display)
+
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
 	err = cmd.Run()
+	if err != nil {
+		debugf("%s failed: %v", display, err)
+	} else {
+		debugf("%s ok", display)
+	}
 	return out.String(), errOut.String(), err
+}
+
+func debugf(format string, args ...any) {
+	if Debugf != nil {
+		Debugf(format, args...)
+	}
 }
 
 func pathOrCurrent(path string) string {

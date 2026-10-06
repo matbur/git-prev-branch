@@ -53,6 +53,35 @@ func TestRunArgumentParsing(t *testing.T) {
 	}
 }
 
+// TestRunDebugPrintsDiagnosticsToStderr drives run() against a directory that
+// is not a repository: the run fails, but --debug must still have printed the
+// config decision and the git invocation it attempted, so the user can see
+// what the tool did -- before the error, not instead of it.
+func TestRunDebugPrintsDiagnosticsToStderr(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	var out, errOut bytes.Buffer
+	code := run([]string{"-d", "-p", t.TempDir()}, os.Stdin, &out, &errOut)
+	if code != exitError {
+		t.Fatalf("exit code = %d, want %d (stderr: %s)", code, exitError, errOut.String())
+	}
+
+	stderr := errOut.String()
+	for _, want := range []string{
+		"debug: running: git -C ",
+		"debug: no config file found, using built-in defaults",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+		}
+	}
+	if out.String() != "" {
+		t.Errorf("stdout = %q, want it empty", out.String())
+	}
+}
+
 func TestAnswerAccepts(t *testing.T) {
 	cases := []struct {
 		answer          string
