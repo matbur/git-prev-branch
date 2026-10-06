@@ -20,7 +20,7 @@ jobs:
     name: README.pl.md is in sync with README.md
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # A checker that cannot fail proves nothing, so prove it can first.
       - name: Self-test the checker
