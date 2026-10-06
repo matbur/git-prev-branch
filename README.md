@@ -266,7 +266,7 @@ fmt.Println(prev)
 
 ### Prerequisites
 
-- [Go](https://go.dev/) 1.24 or newer
+- [Go](https://go.dev/) 1.27 or newer
 - [Git](https://git-scm.com/)
 
 ### Local development setup

@@ -60,7 +60,7 @@ jobs:
       - name: install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13
+          version: v2.13.2
           install-only: true
 
       - name: golangci-lint
