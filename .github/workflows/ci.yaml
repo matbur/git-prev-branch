@@ -88,7 +88,15 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: make build-dist
+        run: |
+          make build-dist
+          # Rename to a platform-qualified binary so every release asset name
+          # is unique; gh release create 404s on same-named assets.
+          if [ "$GOOS" = "windows" ]; then
+            mv dist/git-prev-branch.exe "dist/git-prev-branch-${GOOS}-${GOARCH}.exe"
+          else
+            mv dist/git-prev-branch "dist/git-prev-branch-${GOOS}-${GOARCH}"
+          fi
 
       # Each matrix cell uploads its single binary; the tag job later
       # reassembles all six into the Release published on the new tag.
