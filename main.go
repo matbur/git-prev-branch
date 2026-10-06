@@ -9,15 +9,12 @@ package main
 
 import (
 	"bufio"
-	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
-	"regexp"
-	"strconv"
 	"strings"
 
+	"github.com/alecthomas/kong"
 	"github.com/matbur/git-prev-branch/config"
 	"github.com/matbur/git-prev-branch/gitprevbranch"
 	"golang.org/x/term"
@@ -49,9 +46,14 @@ stdout receives only the branch name; prompts and diagnostics go to stderr.
 Exit codes: 0 success, 1 error, 2 aborted at the confirmation prompt.
 `
 
-// stepPattern is the accepted shape of the positional argument: decimal digits
-// only, so "-1" and "1.5" are rejected by the parser rather than by git.
-var stepPattern = regexp.MustCompile(`^\d+$`)
+// cli is the whole command line grammar; kong turns the tags into flags and
+// the positional argument, so there is no hand-written argument parsing left.
+type cli struct {
+	Config string `short:"c" help:"path to a custom configuration file"`
+	Path   string `short:"p" help:"path to the Git repository to analyze (default: the current working directory)"`
+	Yes    bool   `short:"y" help:"accept the detected branch without prompting"`
+	Step   int    `arg:"" optional:"" default:"1" help:"how many steps back through the branch-switch history (0 is the current branch)"`
+}
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
@@ -61,39 +63,49 @@ func main() {
 // argument list are parameters so the behaviour can be tested without
 // spawning a process.
 func run(args []string, in *os.File, out, errOut io.Writer) int {
-	flags := flag.NewFlagSet("git-prev-branch", flag.ContinueOnError)
-	flags.SetOutput(io.Discard) // usage and errors are rendered by us, see below
-	flags.Usage = func() {}
+	var opts cli
 
-	var (
-		configPath string
-		repoPath   string
-		yes        bool
+	// kong exits through parser.Exit on -h/--help, and prints its own usage
+	// and errors through parser.Stdout/parser.Stderr. Hooking Exit keeps run()
+	// in charge of the exit code, and the custom help printer keeps our
+	// usageText (and only it) on stdout.
+	exitCode := -1
+	parser, err := kong.New(&opts,
+		kong.Exit(func(code int) { exitCode = code }),
+		kong.Help(func(kong.HelpOptions, *kong.Context) error {
+			fmt.Fprint(out, usageText)
+			return nil
+		}),
 	)
-	flags.StringVar(&configPath, "config", "", "path to a custom configuration file")
-	flags.StringVar(&configPath, "c", "", "shorthand for -config")
-	flags.StringVar(&repoPath, "path", "", "path to the Git repository to analyze")
-	flags.StringVar(&repoPath, "p", "", "shorthand for -path")
-	flags.BoolVar(&yes, "yes", false, "accept the detected branch without prompting")
-	flags.BoolVar(&yes, "y", false, "shorthand for -yes")
-
-	positional, err := collectArgs(flags, args)
 	if err != nil {
-		return flagFailure(err, out, errOut)
+		fmt.Fprintf(errOut, "error: %v\n", err)
+		return exitError
+	}
+	parser.Stdout = out
+	parser.Stderr = errOut
+
+	if _, err := parser.Parse(args); exitCode >= 0 {
+		return exitCode
+	} else if err != nil {
+		fmt.Fprintf(errOut, "error: %v\n", err)
+		fmt.Fprint(errOut, usageText)
+		return exitError
 	}
 
-	step, code := parseArgs(positional, errOut)
-	if code != exitSuccess {
-		return code
+	// Only reachable as `git-prev-branch -- -1`: kong rejects bare "-1" as an
+	// unknown flag, but after "--" it parses as a negative step.
+	if opts.Step < 0 {
+		fmt.Fprintf(errOut, "error: invalid argument: -%d\n", -opts.Step)
+		return exitError
 	}
 
-	cfg, err := config.Load(configPath, repoPath)
+	cfg, err := config.Load(opts.Config, opts.Path)
 	if err != nil {
 		fmt.Fprintf(errOut, "error: %v\n", err)
 		return exitError
 	}
 
-	branch, err := gitprevbranch.PreviousIn(step, repoPath)
+	branch, err := gitprevbranch.PreviousIn(opts.Step, opts.Path)
 	if err != nil {
 		fmt.Fprintf(errOut, "error: %v\n", err)
 		return exitError
@@ -101,7 +113,7 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 
 	// The prompt is shown exactly when stdin is an interactive terminal and
 	// --yes was not passed; every other case prints the branch immediately.
-	if !yes && term.IsTerminal(int(in.Fd())) {
+	if !opts.Yes && term.IsTerminal(int(in.Fd())) {
 		if !confirm(in, errOut, branch, cfg.Interactive.AcceptsByDefault()) {
 			return exitAbort
 		}
@@ -109,93 +121,6 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 
 	fmt.Fprintln(out, branch)
 	return exitSuccess
-}
-
-// collectArgs parses args for flags and positionals, allowing the two to be
-// interleaved: Go's flag package stops at the first non-flag token, so the
-// remainder of the command line is parsed in further passes. Each pass
-// consumes exactly one positional token, which also guarantees termination.
-func collectArgs(flags *flag.FlagSet, args []string) ([]string, error) {
-	var positional []string
-	rest := args
-
-	for len(rest) > 0 {
-		if err := flags.Parse(rest); err != nil {
-			return nil, err
-		}
-		if flags.NArg() == 0 {
-			return positional, nil
-		}
-		positional = append(positional, flags.Arg(0))
-		rest = flags.Args()[1:]
-	}
-
-	return positional, nil
-}
-
-// flagFailure renders a flag parsing error, or the help text for -h, and
-// reports the exit code to use.
-func flagFailure(err error, out, errOut io.Writer) int {
-	if errors.Is(err, flag.ErrHelp) {
-		fmt.Fprint(out, usageText)
-		return exitSuccess
-	}
-
-	// `git-prev-branch -1` is a step spelled the wrong way round, not an
-	// undefined flag: say what was meant instead of blaming the flag parser.
-	if name, ok := undefinedFlag(err); ok && stepPattern.MatchString(name) {
-		fmt.Fprintf(errOut, "error: invalid argument: -%s (the step is positional and must not be negative)\n", name)
-		return exitError
-	}
-
-	// Unknown or malformed flags are ordinary errors: the flag package would
-	// exit 2 on its own, and code 2 is reserved for the prompt abort.
-	fmt.Fprintf(errOut, "error: %v\n", err)
-	fmt.Fprint(errOut, usageText)
-	return exitError
-}
-
-// undefinedFlag extracts the flag name from Go's "flag provided but not
-// defined" error message.
-func undefinedFlag(err error) (string, bool) {
-	const prefix = "flag provided but not defined: -"
-	msg := err.Error()
-	if !strings.HasPrefix(msg, prefix) {
-		return "", false
-	}
-	return strings.TrimPrefix(msg, prefix), true
-}
-
-// parseArgs turns the positional arguments into a step index, rejecting
-// anything that is not a single non-negative decimal number. It returns the
-// exit code to use when the arguments are unusable.
-func parseArgs(args []string, errOut io.Writer) (step, code int) {
-	switch len(args) {
-	case 0:
-		return 1, exitSuccess
-	case 1:
-		n, err := parseStep(args[0])
-		if err != nil {
-			fmt.Fprintf(errOut, "error: %v\n", err)
-			return 0, exitError
-		}
-		return n, exitSuccess
-	default:
-		fmt.Fprintf(errOut, "error: unexpected argument: %s\n", args[1])
-		return 0, exitError
-	}
-}
-
-// parseStep parses the positional step argument.
-func parseStep(s string) (int, error) {
-	if !stepPattern.MatchString(s) {
-		return 0, fmt.Errorf("invalid argument: %s", s)
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, fmt.Errorf("invalid argument: %s", s)
-	}
-	return n, nil
 }
 
 // confirm shows the confirmation prompt on errOut and reports whether the

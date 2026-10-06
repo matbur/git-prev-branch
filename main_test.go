@@ -12,81 +12,46 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Unit tests for the helpers
+// Unit tests for run() and the prompt helpers
 // ---------------------------------------------------------------------------
 
-func TestParseStep(t *testing.T) {
+// TestRunArgumentParsing covers everything run() rejects (or accepts) before
+// any Git or config work happens, which is exactly where the kong grammar is
+// exercised. It needs no repository, so it runs against the in-process run().
+func TestRunArgumentParsing(t *testing.T) {
 	cases := []struct {
-		in      string
-		want    int
-		wantErr bool
+		name          string
+		args          []string
+		wantCode      int
+		wantStderr    string
+		wantStdoutHas string
 	}{
-		{in: "0", want: 0},
-		{in: "1", want: 1},
-		{in: "42", want: 42},
-		{in: "0007", want: 7},
-		{in: "", wantErr: true},
-		{in: "abc", wantErr: true},
-		{in: "-1", wantErr: true},
-		{in: "+1", wantErr: true},
-		{in: "1.5", wantErr: true},
-		{in: " 1", wantErr: true},
-		{in: "99999999999999999999999999", wantErr: true},
-	}
-
-	for _, tc := range cases {
-		got, err := parseStep(tc.in)
-		if tc.wantErr {
-			if err == nil {
-				t.Errorf("parseStep(%q) = %d, want an error", tc.in, got)
-			}
-			continue
-		}
-		if err != nil {
-			t.Errorf("parseStep(%q) = %v", tc.in, err)
-			continue
-		}
-		if got != tc.want {
-			t.Errorf("parseStep(%q) = %d, want %d", tc.in, got, tc.want)
-		}
-	}
-}
-
-func TestParseArgs(t *testing.T) {
-	cases := []struct {
-		name        string
-		args        []string
-		wantStep    int
-		wantErrText string
-	}{
-		{name: "no argument defaults to one step back", args: nil, wantStep: 1},
-		{name: "explicit zero", args: []string{"0"}, wantStep: 0},
-		{name: "explicit step", args: []string{"7"}, wantStep: 7},
-		{name: "not a number", args: []string{"abc"}, wantErrText: "invalid argument: abc"},
-		{name: "negative step", args: []string{"-1"}, wantErrText: "invalid argument: -1"},
-		{name: "two positionals", args: []string{"1", "2"}, wantErrText: "unexpected argument: 2"},
+		{name: "not a number", args: []string{"abc"}, wantCode: exitError, wantStderr: `expected a valid 64 bit int but got "abc"`},
+		{name: "step written as a flag", args: []string{"-1"}, wantCode: exitError, wantStderr: "unknown flag -1"},
+		{name: "unknown flag", args: []string{"--bogus"}, wantCode: exitError, wantStderr: "unknown flag --bogus"},
+		{name: "two positionals", args: []string{"1", "2"}, wantCode: exitError, wantStderr: "unexpected argument 2"},
+		{name: "flag without a value", args: []string{"-p"}, wantCode: exitError, wantStderr: `expected string value but got "EOL"`},
+		{name: "negative step after --", args: []string{"--", "-1"}, wantCode: exitError, wantStderr: "invalid argument: -1"},
+		{name: "help", args: []string{"-h"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
+		{name: "long help", args: []string{"--help"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var errOut bytes.Buffer
-			step, code := parseArgs(tc.args, &errOut)
+			var out, errOut bytes.Buffer
+			code := run(tc.args, os.Stdin, &out, &errOut)
 
-			if tc.wantErrText == "" {
-				if code != exitSuccess {
-					t.Fatalf("code = %d, want %d (stderr: %s)", code, exitSuccess, errOut.String())
-				}
-				if step != tc.wantStep {
-					t.Errorf("step = %d, want %d", step, tc.wantStep)
-				}
-				return
+			if code != tc.wantCode {
+				t.Errorf("exit code = %d, want %d (stderr: %s)", code, tc.wantCode, errOut.String())
 			}
-
-			if code != exitError {
-				t.Errorf("code = %d, want %d", code, exitError)
+			if tc.wantStdoutHas != "" && !strings.Contains(out.String(), tc.wantStdoutHas) {
+				t.Errorf("stdout = %q, want it to contain %q", out.String(), tc.wantStdoutHas)
 			}
-			if !strings.Contains(errOut.String(), tc.wantErrText) {
-				t.Errorf("stderr = %q, want it to contain %q", errOut.String(), tc.wantErrText)
+			if tc.wantStderr != "" && !strings.Contains(errOut.String(), tc.wantStderr) {
+				t.Errorf("stderr = %q, want it to contain %q", errOut.String(), tc.wantStderr)
+			}
+			if tc.wantCode == exitSuccess && errOut.String() != "" {
+				t.Errorf("stderr = %q, want it empty on success", errOut.String())
 			}
 		})
 	}
@@ -154,15 +119,6 @@ func TestConfirm(t *testing.T) {
 				t.Errorf("stderr = %q, aborted reported = %v, want %v", stderr, aborted, tc.wantAborted)
 			}
 		})
-	}
-}
-
-func TestUndefinedFlag(t *testing.T) {
-	if name, ok := undefinedFlag(fmt.Errorf("flag provided but not defined: -bogus")); !ok || name != "bogus" {
-		t.Errorf("undefinedFlag() = %q, %v, want %q, true", name, ok, "bogus")
-	}
-	if _, ok := undefinedFlag(fmt.Errorf("flag needs an argument: -p")); ok {
-		t.Error("undefinedFlag() reported success for a missing-argument error")
 	}
 }
 
@@ -328,6 +284,11 @@ func TestEndToEndSuccess(t *testing.T) {
 			want: "main",
 		},
 		{
+			name: "step with a leading plus sign",
+			inv:  invocation{dir: repo, args: []string{"-y", "+1"}},
+			want: "other",
+		},
+		{
 			name: "flag after the positional argument",
 			inv:  invocation{dir: repo, args: []string{"2", "-y"}},
 			want: "main",
@@ -397,27 +358,32 @@ func TestEndToEndErrorsLeaveStdoutEmpty(t *testing.T) {
 		{
 			name:       "step is not a number",
 			inv:        invocation{dir: repo, args: []string{"-y", "abc"}},
-			wantStderr: "invalid argument: abc",
+			wantStderr: `expected a valid 64 bit int but got "abc"`,
 		},
 		{
 			name:       "step written as a flag",
 			inv:        invocation{dir: repo, args: []string{"-1"}},
-			wantStderr: "invalid argument: -1",
+			wantStderr: "unknown flag -1",
 		},
 		{
 			name:       "unknown flag",
 			inv:        invocation{dir: repo, args: []string{"--bogus"}},
-			wantStderr: "flag provided but not defined: -bogus",
+			wantStderr: "unknown flag --bogus",
 		},
 		{
 			name:       "flag without a value",
 			inv:        invocation{dir: repo, args: []string{"-y", "-p"}},
-			wantStderr: "flag needs an argument: -p",
+			wantStderr: `expected string value but got "EOL"`,
 		},
 		{
 			name:       "two positional arguments",
 			inv:        invocation{dir: repo, args: []string{"-y", "1", "2"}},
-			wantStderr: "unexpected argument: 2",
+			wantStderr: "unexpected argument 2",
+		},
+		{
+			name:       "step with leading zeros parses and runs out of history",
+			inv:        invocation{dir: repo, args: []string{"-y", "0007"}},
+			wantStderr: "no previous branch",
 		},
 		{
 			name:       "config file that does not exist",
