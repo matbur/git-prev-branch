@@ -69,6 +69,8 @@ jobs:
   build:
     name: build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +90,14 @@ jobs:
           CGO_ENABLED: "0"
         run: make build-dist
 
+      # Each matrix cell uploads its single binary; the tag job later
+      # reassembles all six into the Release published on the new tag.
+      - name: upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: git-prev-branch-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/git-prev-branch*
+
   tag:
     name: tag (${{ github.ref_name }})
     if: github.ref == 'refs/heads/main'
@@ -95,6 +105,7 @@ jobs:
     needs: [test, lint, build]
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -123,13 +134,27 @@ jobs:
           fi
 
       - name: create next tag
+        id: tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           labels="${{ steps.pr.outputs.labels }}"
           tag="$(python3 scripts/next_tag.py --labels "$labels")"
           echo "new tag: $tag (labels: $labels)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$tag" -m "release $tag"
           git push origin "$tag"
+
+      # The binaries from the build job become the assets of a Release on the
+      # new tag, so every merge ships runnable artifacts (see README, Install).
+      - name: download built binaries
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ steps.tag.outputs.tag }}" --generate-notes release-assets/*/*

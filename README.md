@@ -28,15 +28,9 @@ A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you
 
 You can install `git-prev-branch` using one of the following methods:
 
-> **Note:** method 3 works today; methods 1 and 2 need something that does not exist yet — a published release. `brew install matbur/homebrew-tap/git-prev-branch` fails until the tap is created, and `go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest` fails with an invalid-version error until the first tag is pushed. Homebrew distribution is planned via a separate tap (`matbur/homebrew-tap`); the exact formula, tap setup, and release automation will be finalized as part of the release process.
+> **Note:** Homebrew distribution is planned for later via a separate tap repository (`matbur/homebrew-tap`); see Roadmap.
 
-### 1. Homebrew (recommended)
-
-```bash
-brew install matbur/homebrew-tap/git-prev-branch
-```
-
-### 2. Go install
+### 1. Go install
 
 Requires [Go](https://go.dev/dl/) installed on your system.
 
@@ -46,7 +40,7 @@ go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 
 This will install the binary to your `$GOPATH/bin` (or `$GOBIN`). Make sure it's included in your `PATH`.
 
-### 3. Manual build from source
+### 2. Manual build from source
 
 ```bash
 git clone https://github.com/matbur/git-prev-branch.git
@@ -303,7 +297,7 @@ To maintain high code quality and streamline releases, the project runs the foll
 | **Release publishing** | Automated GitHub Releases (including changelogs and prebuilt binaries). | Simple, predictable distribution. |
 | **Homebrew preparation** | Automated updates to the tap formula as part of the release pipeline. | Seamless updates for Homebrew users. |
 
-> **Note:** the code CI, linting and cross-compilation jobs live in `.github/workflows/ci.yaml`; release publishing and the Homebrew tap are still to come.
+> **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml`; the Homebrew tap is still to come.
 
 ## Roadmap
 
