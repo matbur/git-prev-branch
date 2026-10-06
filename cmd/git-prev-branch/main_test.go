@@ -22,12 +22,27 @@ func TestRunArgumentParsing(t *testing.T) {
 		wantStderr    string
 		wantStdoutHas string
 	}{
-		{name: "not a number", args: []string{"abc"}, wantCode: exitError, wantStderr: `expected a valid 64 bit int but got "abc"`},
+		{
+			name:       "not a number",
+			args:       []string{"abc"},
+			wantCode:   exitError,
+			wantStderr: `expected a valid 64 bit int but got "abc"`,
+		},
 		{name: "step written as a flag", args: []string{"-1"}, wantCode: exitError, wantStderr: "unknown flag -1"},
 		{name: "unknown flag", args: []string{"--bogus"}, wantCode: exitError, wantStderr: "unknown flag --bogus"},
 		{name: "two positionals", args: []string{"1", "2"}, wantCode: exitError, wantStderr: "unexpected argument 2"},
-		{name: "flag without a value", args: []string{"-p"}, wantCode: exitError, wantStderr: `expected string value but got "EOL"`},
-		{name: "negative step after --", args: []string{"--", "-1"}, wantCode: exitError, wantStderr: "invalid argument: -1"},
+		{
+			name:       "flag without a value",
+			args:       []string{"-p"},
+			wantCode:   exitError,
+			wantStderr: `expected string value but got "EOL"`,
+		},
+		{
+			name:       "negative step after --",
+			args:       []string{"--", "-1"},
+			wantCode:   exitError,
+			wantStderr: "invalid argument: -1",
+		},
 		{name: "help", args: []string{"-h"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
 		{name: "long help", args: []string{"--help"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
 	}
@@ -117,10 +132,35 @@ func TestConfirm(t *testing.T) {
 		wantAborted     bool
 	}{
 		{name: "yes", answer: "y\n", want: true, wantHint: "[y/N]"},
-		{name: "no beats an accept default", answer: "n\n", acceptByDefault: true, want: false, wantHint: "[Y/n]", wantAborted: true},
-		{name: "empty answer takes the reject default", answer: "\n", want: false, wantHint: "[y/N]", wantAborted: true},
-		{name: "empty answer takes the accept default", answer: "\n", acceptByDefault: true, want: true, wantHint: "[Y/n]"},
-		{name: "garbage takes the configured default", answer: "huh\n", want: false, wantHint: "[y/N]", wantAborted: true},
+		{
+			name:            "no beats an accept default",
+			answer:          "n\n",
+			acceptByDefault: true,
+			want:            false,
+			wantHint:        "[Y/n]",
+			wantAborted:     true,
+		},
+		{
+			name:        "empty answer takes the reject default",
+			answer:      "\n",
+			want:        false,
+			wantHint:    "[y/N]",
+			wantAborted: true,
+		},
+		{
+			name:            "empty answer takes the accept default",
+			answer:          "\n",
+			acceptByDefault: true,
+			want:            true,
+			wantHint:        "[Y/n]",
+		},
+		{
+			name:        "garbage takes the configured default",
+			answer:      "huh\n",
+			want:        false,
+			wantHint:    "[y/N]",
+			wantAborted: true,
+		},
 		{name: "eof without an answer", answer: "", want: false, wantHint: "[y/N]", wantAborted: true},
 		{name: "eof after an answer", answer: "y", want: true, wantHint: "[y/N]"},
 	}

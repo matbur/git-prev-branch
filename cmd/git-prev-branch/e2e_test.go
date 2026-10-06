@@ -6,6 +6,7 @@ package main_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,6 +27,7 @@ const (
 // End-to-end tests against a real binary and a real repository
 // ---------------------------------------------------------------------------
 
+//nolint:gochecknoglobals // set once in TestMain before any test runs; a binary path must survive into every test.
 var binaryPath string
 
 func TestMain(m *testing.M) {
@@ -51,8 +53,8 @@ func TestMain(m *testing.M) {
 	}
 	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/git-prev-branch")
 	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		fmt.Fprintf(os.Stderr, "go build: %v\n%s", err, out)
+	if out, buildErr := build.CombinedOutput(); buildErr != nil {
+		fmt.Fprintf(os.Stderr, "go build: %v\n%s", buildErr, out)
 		_ = os.RemoveAll(tmp)
 		os.Exit(1)
 	}
@@ -69,7 +71,7 @@ func moduleRoot() (string, error) {
 		return "", err
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+		if _, statErr := os.Stat(filepath.Join(dir, "go.mod")); statErr == nil {
 			return dir, nil
 		}
 		parent := filepath.Dir(dir)
@@ -112,8 +114,8 @@ func writeAndCommit(t *testing.T, dir, message string) {
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatalf("read %s: %v", name, err)
 	}
-	if err := os.WriteFile(name, append(content, []byte(message+"\n")...), 0o644); err != nil {
-		t.Fatalf("write %s: %v", name, err)
+	if writeErr := os.WriteFile(name, append(content, []byte(message+"\n")...), 0o644); writeErr != nil {
+		t.Fatalf("write %s: %v", name, writeErr)
 	}
 	gitIn(t, dir, "add", "file.txt")
 	gitIn(t, dir, "commit", "-q", "-m", message)
@@ -135,7 +137,7 @@ type invocation struct {
 	args     []string
 }
 
-func (inv invocation) run(t *testing.T) (stdout, stderr string, code int) {
+func (inv invocation) run(t *testing.T) (string, string, int) {
 	t.Helper()
 
 	cmd := exec.Command(binaryPath, inv.args...)
@@ -169,12 +171,16 @@ func (inv invocation) run(t *testing.T) (stdout, stderr string, code int) {
 }
 
 func isExitError(err error) bool {
-	_, ok := err.(*exec.ExitError)
-	return ok
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr)
 }
 
 func exitCode(err error) int {
-	return err.(*exec.ExitError).ExitCode()
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return -1
+	}
+	return exitErr.ExitCode()
 }
 
 func TestEndToEndSuccess(t *testing.T) {

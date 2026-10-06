@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	// ErrConfigNotFound indicates the specified config file was not found
+	// ErrConfigNotFound indicates the specified config file was not found.
 	ErrConfigNotFound = errors.New("config file not found")
-	// ErrConfigMalformed indicates the config file is malformed
+	// ErrConfigMalformed indicates the config file is malformed.
 	ErrConfigMalformed = errors.New("malformed config file")
 )
 
@@ -37,11 +37,18 @@ func (i Interactive) AcceptsByDefault() bool {
 	return i.DefaultAction == "accept"
 }
 
-// Debugf, when set, receives a diagnostic line for every config file location
-// considered and for the one finally used. It exists for --debug style flags
-// in command-line tools built on this package; a nil Debugf disables the
-// output. Like fmt.Printf, it is called with a format string and arguments.
+// Debugf is a diagnostic sink. When set, it receives a line for every config
+// file location considered and for the one finally used. It exists for
+// --debug style flags in command-line tools built on this package; a nil
+// Debugf disables the output. Like [fmt.Printf], it is called with a format
+// string and arguments.
+//
+//nolint:gochecknoglobals // a package-level sink the CLI wires to its --debug hook; that is the point.
 var Debugf func(format string, args ...any)
+
+// defaultReject is the interactive.default_action used when no config file
+// says otherwise. The only accepted companion value is "accept".
+const defaultReject = "reject"
 
 func debugf(format string, args ...any) {
 	if Debugf != nil {
@@ -107,7 +114,7 @@ func defaultPaths(repoPath string) []string {
 func defaultConfig() *Config {
 	return &Config{
 		Interactive: Interactive{
-			DefaultAction: "reject",
+			DefaultAction: defaultReject,
 		},
 	}
 }
@@ -120,8 +127,8 @@ func loadFromFile(path string, cfg *Config) error {
 		}
 		return fmt.Errorf("cannot read config file %s: %w", path, err)
 	}
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return fmt.Errorf("%w: %s: %v", ErrConfigMalformed, path, err)
+	if decodeErr := yaml.Unmarshal(data, cfg); decodeErr != nil {
+		return fmt.Errorf("%w: %s: %w", ErrConfigMalformed, path, decodeErr)
 	}
 	return normalize(path, cfg)
 }
@@ -134,8 +141,8 @@ func normalize(path string, cfg *Config) error {
 	action := strings.ToLower(strings.TrimSpace(cfg.Interactive.DefaultAction))
 	switch action {
 	case "":
-		action = "reject"
-	case "accept", "reject":
+		action = defaultReject
+	case "accept", defaultReject:
 	default:
 		return fmt.Errorf(
 			"%w: %s: interactive.default_action must be \"accept\" or \"reject\", got %q",
@@ -159,7 +166,7 @@ func findRepoRoot(startPath string) (string, error) {
 	current := absPath
 	for {
 		gitDir := filepath.Join(current, ".git")
-		if info, err := os.Stat(gitDir); err == nil {
+		if info, statErr := os.Stat(gitDir); statErr == nil {
 			if info.IsDir() || info.Mode().IsRegular() { // .git can be a file in worktrees, but usually dir
 				return current, nil
 			}

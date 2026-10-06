@@ -15,9 +15,10 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"golang.org/x/term"
+
 	"github.com/matbur/git-prev-branch/gitprevbranch"
 	"github.com/matbur/git-prev-branch/internal/config"
-	"golang.org/x/term"
 )
 
 const (
@@ -54,7 +55,7 @@ type cli struct {
 	Path   string `short:"p" help:"path to the Git repository to analyze (default: the current working directory)"`
 	Yes    bool   `short:"y" help:"accept the detected branch without prompting"`
 	Debug  bool   `short:"d" help:"print decisions and git commands to stderr"`
-	Step   int    `arg:"" optional:"" default:"1" help:"how many steps back through the branch-switch history (0 is the current branch)"`
+	Step   int    `          help:"how many steps back through the branch-switch history (0 is the current branch)" arg:"" optional:"" default:"1"`
 }
 
 func main() {
@@ -86,10 +87,10 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 	parser.Stdout = out
 	parser.Stderr = errOut
 
-	if _, err := parser.Parse(args); exitCode >= 0 {
+	if _, parseErr := parser.Parse(args); exitCode >= 0 {
 		return exitCode
-	} else if err != nil {
-		fmt.Fprintf(errOut, "error: %v\n", err)
+	} else if parseErr != nil {
+		fmt.Fprintf(errOut, "error: %v\n", parseErr)
 		fmt.Fprint(errOut, usageText)
 		return exitError
 	}

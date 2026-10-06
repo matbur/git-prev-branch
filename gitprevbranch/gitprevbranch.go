@@ -14,10 +14,12 @@ import (
 	"strings"
 )
 
-// Debugf, when set, receives a diagnostic line for every git command the
-// package runs and its outcome. It exists for --debug style flags in
-// command-line tools built on this package; a nil Debugf disables the output.
-// Like fmt.Printf, it is called with a format string and arguments.
+// Debugf is a diagnostic sink. When set, it receives a line for every git
+// command the package runs and its outcome. It exists for --debug style flags
+// in command-line tools built on this package; a nil Debugf disables the
+// output. Like [fmt.Printf], it is called with a format string and arguments.
+//
+//nolint:gochecknoglobals // a package-level sink the CLI wires to its --debug hook; that is the point.
 var Debugf func(format string, args ...any)
 
 var (
@@ -86,30 +88,29 @@ func classifyError(runErr error, stderr string, n int) error {
 		strings.Contains(msg, "ambiguous argument"):
 		return fmt.Errorf("%w: index %d", ErrNoPreviousBranch, n)
 	case msg == "":
-		return fmt.Errorf("%w: %v", ErrGitCommand, runErr)
+		return fmt.Errorf("%w: %w", ErrGitCommand, runErr)
 	default:
 		return fmt.Errorf("%w: %s", ErrGitCommand, firstLine(msg))
 	}
 }
 
 func firstLine(s string) string {
-	if i := strings.IndexByte(s, '\n'); i >= 0 {
-		return s[:i]
-	}
-	return s
+	line, _, _ := strings.Cut(s, "\n")
+	return line
 }
 
 // runGit runs git in dir and returns its separated stdout and stderr.
-func runGit(dir string, args ...string) (stdout, stderr string, err error) {
+func runGit(dir string, args ...string) (string, string, error) {
 	dir = pathOrCurrent(dir)
 	display := fmt.Sprintf("git -C %q %s", dir, strings.Join(args, " "))
 	debugf("running: %s", display)
 
+	//nolint:gosec,noctx // dir travels as a single -C argv entry, so no shell is involved, and git runs synchronously to completion before the caller proceeds.
 	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		debugf("%s failed: %v", display, err)
 	} else {
