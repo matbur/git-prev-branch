@@ -3,8 +3,12 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/matbur/git-prev-branch.svg)](https://pkg.go.dev/github.com/matbur/git-prev-branch)
 [![Release](https://img.shields.io/github/v/release/matbur/git-prev-branch?sort=semver)](https://github.com/matbur/git-prev-branch/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yml)
-[![Go Build](https://img.shields.io/badge/Go%20Build-TBD-blue.svg)](https://github.com/matbur/git-prev-branch/actions)
+[![Docs Check](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/readme-sync.yaml)
+[![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml)
+
+<p align="center">
+  <img src="assets/icon.svg" alt="git-prev-branch icon" width="120">
+</p>
 
 [🇬🇧 English](README.md) | **[🇵🇱 Polski](README.pl.md)**
 
@@ -18,13 +22,13 @@ Lekkie narzędzie CLI dla użytkowników Gita, napisane w Go. `git-prev-branch` 
 - **Elastyczna nawigacja**: cofnij się w historii przełączeń gałęzi, podając indeks pozycyjny (`0`, `1`, `2`, ...).
 - **Działa z dowolnego miejsca**: wskaż repozytorium Git znajdujące się w innym katalogu za pomocą flagi `--path` (`-p`).
 - **Konfigurowalne zachowanie**: konfiguruj monity interaktywne i wartości domyślne w pliku konfiguracyjnym YAML.
-- **Możliwość użycia jako biblioteka Go**: zaimportuj `git-prev-branch` do własnych narzędzi w Go (API zostanie sfinalizowane w trakcie implementacji).
+- **Możliwość użycia jako biblioteka Go**: zaimportuj `git-prev-branch` do własnych narzędzi w Go — zob. [Użycie jako biblioteka Go](#użycie-jako-biblioteka-go).
 
 ## Instalacja
 
 Możesz zainstalować `git-prev-branch` jedną z poniższych metod:
 
-> **Uwaga:** żadna z poniższych metod jeszcze nie działa — to repozytorium nie zawiera kodu źródłowego Go ani pliku `go.mod`. `go install` kończy się błędem o niewłaściwej wersji, a `go build` błędem `cannot find main module`. Metody zaczną działać po opublikowaniu pierwszego wydania. Dystrybucja przez Homebrew jest planowana za pośrednictwem osobnego tapu (`matbur/homebrew-tap`); dokładna formuła, konfiguracja tapu i automatyzacja wydania zostaną ustalone w ramach procesu wydania.
+> **Uwaga:** metoda 3 działa już dziś; metody 1 i 2 wymagają czegoś, czego jeszcze nie ma — opublikowanego wydania. `brew install matbur/homebrew-tap/git-prev-branch` nie działa do czasu utworzenia tapu, a `go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest` do czasu pierwszego tagu kończy się błędem o niewłaściwej wersji. Dystrybucja przez Homebrew jest planowana za pośrednictwem osobnego tapu (`matbur/homebrew-tap`); dokładna formuła, konfiguracja tapu i automatyzacja wydania zostaną ustalone w ramach procesu wydania.
 
 ### 1. Homebrew (zalecany sposób)
 
@@ -37,7 +41,7 @@ brew install matbur/homebrew-tap/git-prev-branch
 Wymaga zainstalowanego w systemie [Go](https://go.dev/dl/).
 
 ```bash
-go install github.com/matbur/git-prev-branch@latest
+go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 ```
 
 Zainstaluje to plik binarny do katalogu `$GOPATH/bin` (lub `$GOBIN`). Upewnij się, że katalog ten znajduje się w `PATH`.
@@ -199,6 +203,7 @@ Nie są wymagane żadne dodatkowe flagi. Uruchomione z terminala interaktywnego 
 | `--config` | `-c` | Ścieżka do własnego pliku konfiguracyjnego. Nadpisuje obie domyślne lokalizacje. |
 | `--path` | `-p` | Ścieżka do repozytorium Git do przeanalizowania. Domyślnie bieżący katalog roboczy. |
 | `--yes` | `-y` | Przyjmuje wykrytą gałąź bez pytania, nawet w terminalu interaktywnym. `stdout` pozostaje bez zmian w obu przypadkach — zawsze trafia tam wyłącznie nazwa gałęzi — więc ta flaga wyłącza monit, a nie wyjście ani komunikaty diagnostyczne. Sprawia też, że kod wyjścia `2` jest nieosiągalny. |
+| `--debug` | `-d` | Wypisuje na `stderr` decyzje: który plik konfiguracji został znaleziony, a jeśli żaden — że działają wartości domyślne, oraz które polecenia `git` zostały uruchomione i czy się powiodły. `stdout`, monity i kody wyjścia pozostają bez zmian, więc skrypty mogą w całości zignorować ten flag. |
 
 > **Uwaga:** jeśli nie podano argumentu pozycyjnego, domyślną wartością kroku jest `1`. Zachowanie monitów i podział strumieni opisano w sekcji [Wyjście i monity](#wyjście-i-monity).
 
@@ -220,14 +225,14 @@ Plik na poziomie repozytorium jest współdzielony ze wszystkimi, którzy klonuj
 
 Jeśli `--config` (`-c`) wskazuje na plik, którego nie ma, uruchomienie kończy się kodem wyjścia `1`. Dwie domyślne lokalizacje są sprawdzane oportunistycznie — gdy żadna nie istnieje, działają wbudowane wartości domyślne. Uszkodzony plik jest błędem niezależnie od tego, z której lokalizacji pochodzi.
 
-### Przykładowa struktura (planowana)
+### Przykładowa struktura
 
-Poniżej znajduje się reprezentatywny przykład docelowej struktury konfiguracji. Dokładny format i ewentualne dodatkowe klucze **zostaną doprecyzowane** w trakcie implementacji; `default_action` jest ustalony, ponieważ zależą od niego kody wyjścia opisane wyżej.
+Poniższa struktura konfiguracji odpowiada temu, co implementacja czyta dzisiaj. `default_action` jest ustalony, ponieważ zależą od niego kody wyjścia opisane wyżej; dodatkowe klucze mogą pojawić się w przyszłych wersjach.
 
 ```yaml
 interactive:
   # Behavior when the confirmation prompt is shown
-  # Possible values (planned): "accept", "reject", or similar
+  # Possible values: "accept", "reject"
   default_action: reject
 ```
 
@@ -244,9 +249,9 @@ interactive:
 import gpb "github.com/matbur/git-prev-branch/gitprevbranch"
 ```
 
-### Użycie (szkic przykładu)
+### Użycie
 
-Publiczne API **nie zostało jeszcze sfinalizowane** i może się zmienić w trakcie implementacji. Poniżej znajduje się illustracyjny, niewiążący przykład docelowego użycia:
+Biblioteka udostępnia dwie funkcje w pakiecie `gitprevbranch`: `Previous` odwołuje się do bieżącego katalogu roboczego, `PreviousIn` do wskazanego katalogu. Obie zwracają gałąź o `n` kroków wstecz, przy czym `n = 0` oznacza gałąź bieżącą:
 
 ```go
 prev, err := gpb.Previous(1) // Get previous branch (1 step back)
@@ -256,13 +261,13 @@ if err != nil {
 fmt.Println(prev)
 ```
 
-> **Uwaga:** polecenie mieszka w katalogu głównym repozytorium jako `package main`, którego nie da się zaimportować, więc biblioteka jest planowana jako podpakiet: `github.com/matbur/git-prev-branch/gitprevbranch`. Ostateczne sygnatury funkcji, typy oraz obsługa błędów zostaną zdefiniowane i udokumentowane w fazie implementacji.
+> **Uwaga:** polecenie mieszka w pakiecie `cmd/git-prev-branch` jako `package main`, którego nie da się zaimportować, więc biblioteką jest podpakiet `github.com/matbur/git-prev-branch/gitprevbranch`. Błędy są zgłaszane jako wartości strażnicze — `ErrNotGitRepo`, `ErrNoPreviousBranch`, `ErrInvalidIndex`, `ErrGitCommand` — sprawdzalne przez `errors.Is`.
 
 ## Rozwój
 
 ### Wymagania wstępne
 
-- [Go](https://go.dev/) (wersja zostanie ustalona w trakcie implementacji)
+- [Go](https://go.dev/) 1.27 lub nowszy
 - [Git](https://git-scm.com/)
 
 ### Lokalna konfiguracja rozwoju
@@ -272,44 +277,45 @@ git clone https://github.com/matbur/git-prev-branch.git
 cd git-prev-branch
 ```
 
-Od tego miejsca możesz przeglądać, budować i rozwijać projekt, gdy kod źródłowy zostanie dodany.
+Polecenie znajduje się w `cmd/git-prev-branch/`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `internal/config/`; testy każdego pakietu leżą obok niego.
 
-> **Uwaga:** na tym etapie to repozytorium nie zawiera jeszcze kodu źródłowego — tylko ten README, jego tłumaczenie `README.pl.md` oraz narzędzia dokumentacyjne w `scripts/` i `Makefile` (`make check` sprawdza, czy oba README pozostają zsynchronizowane). Kod źródłowy, testy i narzędzia do budowania w Go zostaną dodane w kolejnych commitach.
+> **Uwaga:** `make check` uruchamia każdą lokalną kontrolę — `gofmt`, `go vet`, testy Go i obie kontrole README — a `make help` wypisuje wszystkie dostępne cele.
 
 ## Testowanie
 
-Projekt ma zawierać kompleksowe testy automatyczne zapewniające poprawność i niezawodność:
+Zestaw testów zapewnia poprawność i niezawodność narzędzia:
 
 - **Testy jednostkowe** – weryfikują logikę rdzeniową w izolacji (wyznaczanie historii gałęzi, parsowanie argumentów, obsługa konfiguracji itd.).
 - **Testy integracyjne** – weryfikują zachowanie na prawdziwych repozytoriach Git, obejmując realistyczne przepływy pracy.
 
-> **Uwaga:** struktura testów, frameworki i cele pokrycia zostaną ustalone w trakcie implementacji.
+> **Uwaga:** testy korzystają wyłącznie z pakietu `testing` z biblioteki standardowej i uruchamiają się na prawdziwych, tymczasowych repozytoriach Git; uruchom je poleceniem `go test ./...` albo `make test`.
 
 ## Jakość i automatyzacja
 
-Aby utrzymać wysoką jakość kodu i usprawnić wydania, planuje się następującą automatyzację:
+Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z następującej automatyzacji:
 
-| Obszar | Planowane podejście | Korzyści |
+| Obszar | Podejście | Korzyści |
 |---|---|---|
 | **CI dla kodu** | Workflowy GitHub Actions uruchamiające testy, linting i kompilację krzyżową przy każdym pushu i pull requeście. | Wczesne wykrywanie regresji i spójna kontrola jakości. |
 | **Linting** | Analiza statyczna i kontrola stylu (np. `golangci-lint`) egzekwujące najlepsze praktyki Go. | Czystsza, łatwiejsza w utrzymaniu baza kodu. |
 | **Buildy wieloplatformowe** | Automatyczna kompilacja krzyżowa dla Linuksa, macOS i Windows (amd64/arm64). | Szeroka zgodność dla użytkowników końcowych. |
+| **Tagi wersji** | Nowy tag `vX.Y.Z` przy każdym mergu do `main`, podbijany labelką `major`/`minor`/`patch release` zmerged PR (`patch`, gdy braku brak). | Przewidywalne punkty wydania i proste, przyrostowe wersjonowanie. |
 | **Publikowanie wydań** | Zautomatyzowane GitHub Releases (wraz z changelogami i gotowymi plikami binarnymi). | Prosta i przewidywalna dystrybucja. |
 | **Przygotowanie Homebrew** | Automatyczne aktualizacje formuły w tapie w ramach potoku wydania. | Bezproblemowe aktualizacje dla użytkowników Homebrew. |
 
-> **Uwaga:** ostateczne implementacje workflowów, wybór narzędzi i wyzwalacze zostaną ustalone później.
+> **Uwaga:** joby CI kodu, lintingu i kompilacji krzyżowej znajdują się w pliku `.github/workflows/ci.yaml`; publikowanie wydań i tap Homebrew powstaną później.
 
 ## Plan rozwoju
 
-- [ ] Zaimplementować logikę rdzeniową ustalania poprzedniej gałęzi na podstawie historii Gita
-- [ ] Dodać parsowanie argumentów wiersza poleceń (indeks pozycyjny i flagi)
-- [ ] Zaimplementować wyjście przyjazne skryptom (rozdzielenie `stdout`/`stderr` i wykrywanie TTY, aby bezpiecznie działać w `$(...)` i potokach)
-- [ ] Zaimplementować `--yes`/`-y`, aby przyjmować wykryty wynik bez pytania
-- [ ] Dodać obsługę własnej ścieżki repozytorium (`--path`/`-p`)
-- [ ] Zaimplementować obsługę pliku konfiguracyjnego (lokalizacja w repozytorium i użytkownika, nadpisanie `--config`/`-c`) z domyślnymi wartościami dla trybu interaktywnego
-- [ ] Zdefiniować i ustabilizować publiczne API biblioteki Go (`github.com/matbur/git-prev-branch/gitprevbranch`)
-- [ ] Dodać testy jednostkowe i integracyjne
-- [ ] Skonfigurować CI (linting, testy, buildy wieloplatformowe)
+- [x] Zaimplementować logikę rdzeniową ustalania poprzedniej gałęzi na podstawie historii Gita
+- [x] Dodać parsowanie argumentów wiersza poleceń (indeks pozycyjny i flagi)
+- [x] Zaimplementować wyjście przyjazne skryptom (rozdzielenie `stdout`/`stderr` i wykrywanie TTY, aby bezpiecznie działać w `$(...)` i potokach)
+- [x] Zaimplementować `--yes`/`-y`, aby przyjmować wykryty wynik bez pytania
+- [x] Dodać obsługę własnej ścieżki repozytorium (`--path`/`-p`)
+- [x] Zaimplementować obsługę pliku konfiguracyjnego (lokalizacja w repozytorium i użytkownika, nadpisanie `--config`/`-c`) z domyślnymi wartościami dla trybu interaktywnego
+- [x] Zdefiniować i ustabilizować publiczne API biblioteki Go (`github.com/matbur/git-prev-branch/gitprevbranch`)
+- [x] Dodać testy jednostkowe i integracyjne
+- [x] Skonfigurować CI (linting, testy, buildy wieloplatformowe)
 - [ ] Przygotować i opublikować tap Homebrew wraz z formułą
 - [ ] Wydać pierwszą stabilną wersję wraz z plikami binarnymi
 
@@ -322,13 +328,13 @@ Wkład jest mile widziany! Jeśli chcesz zaproponować zmiany, zgłosić problem
 3. Wprowadź zmiany w jasnych, dobrze udokumentowanych commitach.
 4. Wyślij pull request opisujący motywację i zakres swoich zmian.
 
-Przestrzegaj standardowych konwencji Go i utrzymuj zmiany spójne z celami oraz zakresem projektu. Jeśli edytujesz `README.md`, odwzoruj zmianę w `README.pl.md` i przed wypchnięciem uruchom te same kontrole, co CI:
+Przestrzegaj standardowych konwencji Go i utrzymuj zmiany spójne z celami oraz zakresem projektu. Jeśli edytujesz `README.md`, odwzoruj zmianę w `README.pl.md` i przed wypchnięciem uruchom kontrole:
 
 ```bash
 make check
 ```
 
-`make check` uruchamia zarówno `scripts/check_readme_sync.py`, jak i `scripts/test_check_readme_sync.py`, czyli w sumie wszystko, co robi CI. Samo pierwsze polecenie nie wystarczy: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
+`make check` uruchamia `gofmt`, `go vet`, testy Go i obie kontrole README — `scripts/check_readme_sync.py` oraz `scripts/test_check_readme_sync.py`. To wszystko, co robi CI, poza jobem `golangci-lint` (`make lint`, jeśli masz zainstalowany golangci-lint v2). Skrypty README nie są równoważne: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
 
 ## Licencja
 

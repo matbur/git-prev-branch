@@ -35,3 +35,11 @@ __pycache__/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Binary produced by `make build` in the repository root
+/git-prev-branch
+
+# Cross-compilation output of `make build-dist`
+/dist
+
+AGENTS.md
