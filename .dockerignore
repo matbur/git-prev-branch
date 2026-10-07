@@ -1,0 +1,10 @@
+# Deny by default: only the Go sources needed for `go build` reach the build
+# stage. The last matching pattern wins, so the whitelist re-includes the
+# three source trees and `**/*_test.go` drops the tests back out.
+*
+!go.mod
+!go.sum
+!cmd
+!gitprevbranch
+!internal
+**/*_test.go

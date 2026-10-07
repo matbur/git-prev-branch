@@ -50,6 +50,18 @@ go build
 
 Powstały plik binarny będzie dostępny w bieżącym katalogu. Możesz go przenieść do lokalizacji na swojej ścieżce `PATH`.
 
+### 3. Docker
+
+Gotowy obraz jest publikowany na [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch): zawiera wyłącznie Gita i binarkę `git-prev-branch`, a przebudowywany jest automatycznie przy każdym mergu do `main` oraz przy każdym tagu `vX.Y.Z`. Zamontuj bieżące repozytorium w `/repo` (katalogu roboczym obrazu) i zaliasuj całe polecenie:
+
+```bash
+alias git-prev-branch='docker run --rm -it -v "$PWD":/repo matbur/git-prev-branch'
+```
+
+Alias jest interaktywny jak natywna binarka: w terminalu pokazuje monit potwierdzenia, `git-prev-branch -y 2` wciąż działa, a kody wyjścia przechodzą przez `docker run`. Do skryptów opuść `-it` (np. `docker run --rm -v "$PWD":/repo matbur/git-prev-branch`) — bez terminala na `stdin` monit jest wtedy pomijany automatycznie. Wystarczy zainstalowany `docker` — ani Git, ani Go nie są potrzebne.
+
+Repozytorium spoza bieżącego katalogu wymaga własnego montowania (np. `-v /path/to/repo:/path/to/repo` razem z `--path /path/to/repo`), a plik konfiguracji można zamontować w `/home/uid1000/.config/git-prev-branch`.
+
 ## Użytkowanie
 
 ### Tryb interaktywny
@@ -296,9 +308,10 @@ Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z nas
 | **Buildy wieloplatformowe** | Automatyczna kompilacja krzyżowa dla Linuksa, macOS i Windows (amd64/arm64). | Szeroka zgodność dla użytkowników końcowych. |
 | **Tagi wersji** | Nowy tag `vX.Y.Z` przy każdym mergu do `main`, podbijany labelką `major`/`minor`/`patch release` zmerged PR (`patch`, gdy braku brak). | Przewidywalne punkty wydania i proste, przyrostowe wersjonowanie. |
 | **Publikowanie wydań** | Zautomatyzowane GitHub Releases (wraz z changelogami i gotowymi plikami binarnymi). | Prosta i przewidywalna dystrybucja. |
+| **Publikowanie Dockera** | `Dockerfile` jest budowany i publikowany na Docker Hub przy każdym mergu do `main` oraz przy każdym tagu `vX.Y.Z`. | Gotowy do uruchomienia obraz; instalacja Gita ani Go nie jest potrzebna. |
 | **Przygotowanie Homebrew** | Automatyczne aktualizacje formuły w tapie w ramach potoku wydania. | Bezproblemowe aktualizacje dla użytkowników Homebrew. |
 
-> **Uwaga:** joby CI kodu, lintingu, kompilacji krzyżowej i wydań znajdują się w pliku `.github/workflows/ci.yaml`; tap Homebrew powstaną później.
+> **Uwaga:** joby CI kodu, lintingu, kompilacji krzyżowej i wydań znajdują się w pliku `.github/workflows/ci.yaml`, obraz Docker w `.github/workflows/docker.yaml`; tap Homebrew powstaną później.
 
 ## Plan rozwoju
 

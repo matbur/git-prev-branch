@@ -50,6 +50,18 @@ go build
 
 The resulting binary will be available in the current directory. You can move it to a location in your `PATH`.
 
+### 3. Docker
+
+A ready-made image is published to [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch): it contains nothing but Git and the `git-prev-branch` binary, and is rebuilt automatically on every merge to `main` and on every `vX.Y.Z` tag. Mount the current repository at `/repo` (the image's work directory) and alias the whole command:
+
+```bash
+alias git-prev-branch='docker run --rm -it -v "$PWD":/repo matbur/git-prev-branch'
+```
+
+The alias is interactive like the native binary: in a terminal it shows the confirmation prompt, `git-prev-branch -y 2` still works, and exit codes pass through `docker run`. For scripts, drop `-it` (e.g. `docker run --rm -v "$PWD":/repo matbur/git-prev-branch`) — without a terminal on `stdin` the prompt is then skipped automatically. `docker` is the only requirement — neither Git nor Go has to be installed.
+
+A repository outside the current directory needs its own mount (e.g. `-v /path/to/repo:/path/to/repo` together with `--path /path/to/repo`), and a configuration file can be mounted at `/home/uid1000/.config/git-prev-branch`.
+
 ## Usage
 
 ### Interactive mode
@@ -296,9 +308,10 @@ To maintain high code quality and streamline releases, the project runs the foll
 | **Multi-platform builds** | Automated cross-compilation for Linux, macOS, and Windows (amd64/arm64). | Broad compatibility for end users. |
 | **Versioning tags** | A new `vX.Y.Z` tag on every merge to `main`, bumped by the merged PR's `major`/`minor`/`patch release` label (`patch` when none). | Predictable release points and simple, incremental versioning. |
 | **Release publishing** | Automated GitHub Releases (including changelogs and prebuilt binaries). | Simple, predictable distribution. |
+| **Docker publishing** | The `Dockerfile` is built and published to Docker Hub on every merge to `main` and on every `vX.Y.Z` tag. | Ready-to-run image; no Git or Go install needed. |
 | **Homebrew preparation** | Automated updates to the tap formula as part of the release pipeline. | Seamless updates for Homebrew users. |
 
-> **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml`; the Homebrew tap is still to come.
+> **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml`, the Docker image in `.github/workflows/docker.yaml`; the Homebrew tap is still to come.
 
 ## Roadmap
 
