@@ -1,13 +1,14 @@
 package gitprevbranch_test
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/matbur/git-prev-branch/gitprevbranch"
 )
@@ -34,9 +35,7 @@ func commit(t *testing.T, dir, message string) {
 	if data, err := os.ReadFile(name); err == nil {
 		content = string(data) + message + "\n"
 	}
-	if err := os.WriteFile(name, []byte(content), 0o644); err != nil {
-		t.Fatalf("write file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(name, []byte(content), 0o644), "write file")
 	git(t, dir, "add", "file.txt")
 	git(t, dir, "commit", "-q", "-m", message)
 }
@@ -44,22 +43,16 @@ func commit(t *testing.T, dir, message string) {
 func git(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
-	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
-	}
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput()
+	require.NoError(t, err, "git %s:\n%s", strings.Join(args, " "), out)
 }
 
 func TestPreviousInZeroIsTheCurrentBranch(t *testing.T) {
 	repo := newRepo(t)
 
 	got, err := gitprevbranch.PreviousIn(0, repo)
-	if err != nil {
-		t.Fatalf("PreviousIn(0) = %v", err)
-	}
-	if got != "main" {
-		t.Errorf("PreviousIn(0) = %q, want %q", got, "main")
-	}
+	require.NoError(t, err, "PreviousIn(0)")
+	require.Equal(t, "main", got)
 }
 
 func TestPreviousInWalksBackThroughTheSwitchHistory(t *testing.T) {
@@ -77,12 +70,8 @@ func TestPreviousInWalksBackThroughTheSwitchHistory(t *testing.T) {
 	want := map[int]string{0: "feat", 1: "other", 2: "main", 3: "feat", 4: "main"}
 	for step, wantBranch := range want {
 		got, err := gitprevbranch.PreviousIn(step, repo)
-		if err != nil {
-			t.Fatalf("PreviousIn(%d) = %v", step, err)
-		}
-		if got != wantBranch {
-			t.Errorf("PreviousIn(%d) = %q, want %q", step, got, wantBranch)
-		}
+		require.NoError(t, err, "PreviousIn(%d)", step)
+		require.Equal(t, wantBranch, got, "PreviousIn(%d)", step)
 	}
 }
 
@@ -94,12 +83,10 @@ func TestPreviousInBeyondTheHistoryReportsNoPreviousBranch(t *testing.T) {
 	git(t, repo, "checkout", "-q", "feat")
 
 	// The reflog holds three switches (main, feat, main); there is no fourth.
-	if _, err := gitprevbranch.PreviousIn(4, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
-		t.Errorf("PreviousIn(4) error = %v, want ErrNoPreviousBranch", err)
-	}
-	if _, err := gitprevbranch.PreviousIn(100, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
-		t.Errorf("PreviousIn(100) error = %v, want ErrNoPreviousBranch", err)
-	}
+	_, err := gitprevbranch.PreviousIn(4, repo)
+	require.ErrorIs(t, err, gitprevbranch.ErrNoPreviousBranch, "PreviousIn(4)")
+	_, err = gitprevbranch.PreviousIn(100, repo)
+	require.ErrorIs(t, err, gitprevbranch.ErrNoPreviousBranch, "PreviousIn(100)")
 }
 
 func TestPreviousInOnDetachedHEAD(t *testing.T) {
@@ -109,20 +96,17 @@ func TestPreviousInOnDetachedHEAD(t *testing.T) {
 	git(t, repo, "checkout", "-q", "--detach", "HEAD~1")
 
 	// There is no current branch to report...
-	if _, err := gitprevbranch.PreviousIn(0, repo); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
-		t.Errorf("PreviousIn(0) error = %v, want ErrNoPreviousBranch", err)
-	}
+	_, err := gitprevbranch.PreviousIn(0, repo)
+	require.ErrorIs(t, err, gitprevbranch.ErrNoPreviousBranch, "PreviousIn(0)")
+
 	// ...but the branch switches before the detach are still walkable, with
 	// the detached hop skipped exactly as git itself skips it: we left feat
 	// for the detached HEAD, and feat for main before that.
 	for step, want := range map[int]string{1: "feat", 2: "main"} {
-		got, err := gitprevbranch.PreviousIn(step, repo)
-		if err != nil {
-			t.Fatalf("PreviousIn(%d) = %v", step, err)
-		}
-		if got != want {
-			t.Errorf("PreviousIn(%d) = %q, want %q", step, got, want)
-		}
+		var got string
+		got, err = gitprevbranch.PreviousIn(step, repo)
+		require.NoError(t, err, "PreviousIn(%d)", step)
+		require.Equal(t, want, got, "PreviousIn(%d)", step)
 	}
 }
 
@@ -131,37 +115,32 @@ func TestPreviousInRepositoryWithoutCommits(t *testing.T) {
 	git(t, dir, "init", "-q", "-b", "main")
 
 	for _, step := range []int{0, 1} {
-		if _, err := gitprevbranch.PreviousIn(step, dir); !errors.Is(err, gitprevbranch.ErrNoPreviousBranch) {
-			t.Errorf("PreviousIn(%d) error = %v, want ErrNoPreviousBranch", step, err)
-		}
+		_, err := gitprevbranch.PreviousIn(step, dir)
+		require.ErrorIs(t, err, gitprevbranch.ErrNoPreviousBranch, "PreviousIn(%d)", step)
 	}
 }
 
 func TestPreviousInRejectsNegativeIndex(t *testing.T) {
 	repo := newRepo(t)
 
-	if _, err := gitprevbranch.PreviousIn(-1, repo); !errors.Is(err, gitprevbranch.ErrInvalidIndex) {
-		t.Errorf("PreviousIn(-1) error = %v, want ErrInvalidIndex", err)
-	}
+	_, err := gitprevbranch.PreviousIn(-1, repo)
+	require.ErrorIs(t, err, gitprevbranch.ErrInvalidIndex, "PreviousIn(-1)")
 }
 
 func TestPreviousInOutsideARepository(t *testing.T) {
 	notARepo := t.TempDir()
 
-	if _, err := gitprevbranch.PreviousIn(1, notARepo); !errors.Is(err, gitprevbranch.ErrNotGitRepo) {
-		t.Errorf("PreviousIn(1) error = %v, want ErrNotGitRepo", err)
-	}
-	if _, err := gitprevbranch.PreviousIn(0, notARepo); !errors.Is(err, gitprevbranch.ErrNotGitRepo) {
-		t.Errorf("PreviousIn(0) error = %v, want ErrNotGitRepo", err)
-	}
+	_, err := gitprevbranch.PreviousIn(1, notARepo)
+	require.ErrorIs(t, err, gitprevbranch.ErrNotGitRepo, "PreviousIn(1)")
+	_, err = gitprevbranch.PreviousIn(0, notARepo)
+	require.ErrorIs(t, err, gitprevbranch.ErrNotGitRepo, "PreviousIn(0)")
 }
 
 func TestPreviousInMissingDirectoryIsAGitFailure(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-	if _, err := gitprevbranch.PreviousIn(1, missing); !errors.Is(err, gitprevbranch.ErrGitCommand) {
-		t.Errorf("PreviousIn(1) error = %v, want ErrGitCommand", err)
-	}
+	_, err := gitprevbranch.PreviousIn(1, missing)
+	require.ErrorIs(t, err, gitprevbranch.ErrGitCommand, "PreviousIn(1)")
 }
 
 func TestPreviousInFromASubdirectoryOfTheWorkTree(t *testing.T) {
@@ -170,17 +149,11 @@ func TestPreviousInFromASubdirectoryOfTheWorkTree(t *testing.T) {
 	commit(t, repo, "second")
 	git(t, repo, "checkout", "-q", "main")
 	sub := filepath.Join(repo, "nested", "deeper")
-	if err := os.MkdirAll(sub, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
+	require.NoError(t, os.MkdirAll(sub, 0o755), "mkdir")
 
 	got, err := gitprevbranch.PreviousIn(1, sub)
-	if err != nil {
-		t.Fatalf("PreviousIn(1) from a subdirectory = %v", err)
-	}
-	if got != "feat" {
-		t.Errorf("PreviousIn(1) from a subdirectory = %q, want %q", got, "feat")
-	}
+	require.NoError(t, err, "PreviousIn(1) from a subdirectory")
+	require.Equal(t, "feat", got)
 }
 
 func TestDebugfReportsTheGitCommands(t *testing.T) {
@@ -192,17 +165,13 @@ func TestDebugfReportsTheGitCommands(t *testing.T) {
 	}
 	defer func() { gitprevbranch.Debugf = nil }()
 
-	if _, err := gitprevbranch.PreviousIn(0, repo); err != nil {
-		t.Fatalf("PreviousIn(0) = %v", err)
-	}
+	_, err := gitprevbranch.PreviousIn(0, repo)
+	require.NoError(t, err, "PreviousIn(0)")
 
 	joined := strings.Join(got, "\n")
-	if !strings.Contains(joined, "running: git -C ") || !strings.Contains(joined, "rev-parse") {
-		t.Errorf("debug lines = %q, want the built git command", joined)
-	}
-	if !strings.HasSuffix(joined, " ok") {
-		t.Errorf("debug lines = %q, want a success line", joined)
-	}
+	require.Contains(t, joined, "running: git -C ", "debug lines")
+	require.Contains(t, joined, "rev-parse", "debug lines")
+	require.True(t, strings.HasSuffix(joined, " ok"), "debug lines = %q, want a success line", joined)
 }
 
 func TestPreviousUsesTheCurrentWorkingDirectory(t *testing.T) {
@@ -213,10 +182,6 @@ func TestPreviousUsesTheCurrentWorkingDirectory(t *testing.T) {
 	t.Chdir(repo)
 
 	got, err := gitprevbranch.Previous(1)
-	if err != nil {
-		t.Fatalf("Previous(1) = %v", err)
-	}
-	if got != "feat" {
-		t.Errorf("Previous(1) = %q, want %q", got, "feat")
-	}
+	require.NoError(t, err, "Previous(1)")
+	require.Equal(t, "feat", got)
 }
