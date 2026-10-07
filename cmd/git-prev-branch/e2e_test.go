@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Exit codes asserted from the outside; the values are pinned against the
@@ -114,11 +116,10 @@ func writeAndCommit(t *testing.T, dir, message string) {
 	name := filepath.Join(dir, "file.txt")
 	content, err := os.ReadFile(name)
 	if err != nil && !os.IsNotExist(err) {
-		t.Fatalf("read %s: %v", name, err)
+		require.FailNowf(t, "read file", "read %s: %v", name, err)
 	}
-	if writeErr := os.WriteFile(name, append(content, []byte(message+"\n")...), 0o644); writeErr != nil {
-		t.Fatalf("write %s: %v", name, writeErr)
-	}
+	writeErr := os.WriteFile(name, append(content, []byte(message+"\n")...), 0o644)
+	require.NoError(t, writeErr, "write %s", name)
 	gitIn(t, dir, "add", "file.txt")
 	gitIn(t, dir, "commit", "-q", "-m", message)
 }
@@ -126,10 +127,8 @@ func writeAndCommit(t *testing.T, dir, message string) {
 func gitIn(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
-	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
-	}
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput()
+	require.NoError(t, err, "git %s:\n%s", strings.Join(args, " "), out)
 }
 
 type invocation struct {
@@ -167,7 +166,12 @@ func (inv invocation) run(t *testing.T) (string, string, int) {
 	case isExitError(err):
 		return out.String(), errOut.String(), exitCode(err)
 	default:
-		t.Fatalf("run %v: %v\nstdout: %s\nstderr: %s", inv.args, err, out.String(), errOut.String())
+		require.FailNowf(
+			t,
+			"binary failed unexpectedly",
+			"run %v: %v\nstdout: %s\nstderr: %s",
+			inv.args, err, out.String(), errOut.String(),
+		)
 		return "", "", 0
 	}
 }
@@ -282,15 +286,9 @@ func TestEndToEndSuccess(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			stdout, stderr, code := tc.inv.run(t)
 
-			if code != wantExitSuccess {
-				t.Fatalf("exit code = %d, want %d (stderr: %s)", code, wantExitSuccess, stderr)
-			}
-			if want := tc.want + "\n"; stdout != want {
-				t.Errorf("stdout = %q, want %q", stdout, want)
-			}
-			if stderr != "" {
-				t.Errorf("stderr = %q, want it empty on success", stderr)
-			}
+			require.Equal(t, wantExitSuccess, code, "exit code (stderr: %s)", stderr)
+			require.Equal(t, tc.want+"\n", stdout)
+			require.Empty(t, stderr, "stderr on success")
 		})
 	}
 }
@@ -392,15 +390,9 @@ func TestEndToEndErrorsLeaveStdoutEmpty(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			stdout, stderr, code := tc.inv.run(t)
 
-			if code != wantExitError {
-				t.Errorf("exit code = %d, want %d (stderr: %s)", code, wantExitError, stderr)
-			}
-			if stdout != "" {
-				t.Errorf("stdout = %q, want it empty on failure", stdout)
-			}
-			if !strings.Contains(stderr, tc.wantStderr) {
-				t.Errorf("stderr = %q, want it to contain %q", stderr, tc.wantStderr)
-			}
+			require.Equal(t, wantExitError, code, "exit code (stderr: %s)", stderr)
+			require.Empty(t, stdout, "stdout on failure")
+			require.Contains(t, stderr, tc.wantStderr, "stderr")
 		})
 	}
 }
@@ -408,15 +400,9 @@ func TestEndToEndErrorsLeaveStdoutEmpty(t *testing.T) {
 func TestEndToEndHelp(t *testing.T) {
 	stdout, stderr, code := invocation{dir: t.TempDir(), args: []string{"-h"}}.run(t)
 
-	if code != wantExitSuccess {
-		t.Errorf("exit code = %d, want %d", code, wantExitSuccess)
-	}
-	if !strings.Contains(stdout, "Usage:") {
-		t.Errorf("stdout = %q, want it to contain the usage text", stdout)
-	}
-	if stderr != "" {
-		t.Errorf("stderr = %q, want it empty for -h", stderr)
-	}
+	require.Equal(t, wantExitSuccess, code, "exit code")
+	require.Contains(t, stdout, "Usage:", "stdout")
+	require.Empty(t, stderr, "stderr for -h")
 }
 
 // TestEndToEndVersion prints the stamped version and exits 0 without ever
@@ -426,15 +412,9 @@ func TestEndToEndVersion(t *testing.T) {
 		t.Run(flag, func(t *testing.T) {
 			stdout, stderr, code := invocation{dir: t.TempDir(), args: []string{flag}}.run(t)
 
-			if code != wantExitSuccess {
-				t.Fatalf("exit code = %d, want %d (stderr: %s)", code, wantExitSuccess, stderr)
-			}
-			if want := "git-prev-branch e2e-test\n"; stdout != want {
-				t.Errorf("stdout = %q, want %q", stdout, want)
-			}
-			if stderr != "" {
-				t.Errorf("stderr = %q, want it empty for --version", stderr)
-			}
+			require.Equal(t, wantExitSuccess, code, "exit code (stderr: %s)", stderr)
+			require.Equal(t, "git-prev-branch e2e-test\n", stdout)
+			require.Empty(t, stderr, "stderr for --version")
 		})
 	}
 }
@@ -449,19 +429,13 @@ func TestEndToEndDebugWritesOnlyToStderr(t *testing.T) {
 		t.Run(flag, func(t *testing.T) {
 			stdout, stderr, code := invocation{dir: repo, args: []string{flag}}.run(t)
 
-			if code != wantExitSuccess {
-				t.Fatalf("exit code = %d, want %d (stderr: %s)", code, wantExitSuccess, stderr)
-			}
-			if want := "other\n"; stdout != want {
-				t.Errorf("stdout = %q, want %q", stdout, want)
-			}
+			require.Equal(t, wantExitSuccess, code, "exit code (stderr: %s)", stderr)
+			require.Equal(t, "other\n", stdout)
 			for _, want := range []string{
 				"debug: previous branch: other",
 				"debug: running: git -C ",
 			} {
-				if !strings.Contains(stderr, want) {
-					t.Errorf("stderr = %q, want it to contain %q", stderr, want)
-				}
+				require.Contains(t, stderr, want, "stderr")
 			}
 		})
 	}
@@ -491,10 +465,6 @@ func repoWithConfig(t *testing.T, content string) string {
 func writeTestFile(t *testing.T, path, content string) {
 	t.Helper()
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("write %s: %v", path, err)
-	}
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755), "mkdir %s", filepath.Dir(path))
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644), "write %s", path)
 }

@@ -283,7 +283,7 @@ The test suite covers the tool end to end:
 - **Unit tests** – Verify core logic in isolation (branch history resolution, argument parsing, configuration handling, etc.).
 - **Integration tests** – Validate behavior against real Git repositories to cover realistic workflows.
 
-> **Note:** the tests use only the standard `testing` package and run against real, temporary Git repositories; start them with `go test ./...` or `make test`.
+> **Note:** the tests build on the standard `testing` package plus `github.com/stretchr/testify` for assertions, and they run against real, temporary Git repositories; start them with `make test`.
 
 ## Quality & Automation
 

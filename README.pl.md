@@ -283,7 +283,7 @@ Zestaw testów zapewnia poprawność i niezawodność narzędzia:
 - **Testy jednostkowe** – weryfikują logikę rdzeniową w izolacji (wyznaczanie historii gałęzi, parsowanie argumentów, obsługa konfiguracji itd.).
 - **Testy integracyjne** – weryfikują zachowanie na prawdziwych repozytoriach Git, obejmując realistyczne przepływy pracy.
 
-> **Uwaga:** testy korzystają wyłącznie z pakietu `testing` z biblioteki standardowej i uruchamiają się na prawdziwych, tymczasowych repozytoriach Git; uruchom je poleceniem `go test ./...` albo `make test`.
+> **Uwaga:** testy korzystają z pakietu `testing` z biblioteki standardowej oraz z `github.com/stretchr/testify` do asercji i uruchamiają się na prawdziwych, tymczasowych repozytoriach Git; uruchom je poleceniem `make test`.
 
 ## Jakość i automatyzacja
 

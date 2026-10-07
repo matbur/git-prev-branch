@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
@@ -78,17 +80,15 @@ func TestRunArgumentParsing(t *testing.T) {
 			var out, errOut bytes.Buffer
 			code := run(tc.args, os.Stdin, &out, &errOut)
 
-			if code != tc.wantCode {
-				t.Errorf("exit code = %d, want %d (stderr: %s)", code, tc.wantCode, errOut.String())
+			require.Equal(t, tc.wantCode, code, "exit code (stdout: %q, stderr: %q)", out.String(), errOut.String())
+			if tc.wantStdoutHas != "" {
+				require.Contains(t, out.String(), tc.wantStdoutHas, "stdout")
 			}
-			if tc.wantStdoutHas != "" && !strings.Contains(out.String(), tc.wantStdoutHas) {
-				t.Errorf("stdout = %q, want it to contain %q", out.String(), tc.wantStdoutHas)
+			if tc.wantStderr != "" {
+				require.Contains(t, errOut.String(), tc.wantStderr, "stderr")
 			}
-			if tc.wantStderr != "" && !strings.Contains(errOut.String(), tc.wantStderr) {
-				t.Errorf("stderr = %q, want it to contain %q", errOut.String(), tc.wantStderr)
-			}
-			if tc.wantCode == exitSuccess && errOut.String() != "" {
-				t.Errorf("stderr = %q, want it empty on success", errOut.String())
+			if tc.wantCode == exitSuccess {
+				require.Empty(t, errOut.String(), "stderr on success")
 			}
 		})
 	}
@@ -105,22 +105,15 @@ func TestRunDebugPrintsDiagnosticsToStderr(t *testing.T) {
 
 	var out, errOut bytes.Buffer
 	code := run([]string{"-d", "-p", t.TempDir()}, os.Stdin, &out, &errOut)
-	if code != exitError {
-		t.Fatalf("exit code = %d, want %d (stderr: %s)", code, exitError, errOut.String())
-	}
+	require.Equal(t, exitError, code, "exit code (stderr: %q)", errOut.String())
 
-	stderr := errOut.String()
 	for _, want := range []string{
 		"debug: running: git -C ",
 		"debug: no config file found, using built-in defaults",
 	} {
-		if !strings.Contains(stderr, want) {
-			t.Errorf("stderr = %q, want it to contain %q", stderr, want)
-		}
+		require.Contains(t, errOut.String(), want, "stderr")
 	}
-	if out.String() != "" {
-		t.Errorf("stdout = %q, want it empty", out.String())
-	}
+	require.Empty(t, out.String(), "stdout")
 }
 
 func TestResolveVersion(t *testing.T) {
@@ -142,9 +135,8 @@ func TestResolveVersion(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		if got := resolveVersion(tc.stamped, tc.moduleVersion); got != tc.want {
-			t.Errorf("resolveVersion(%q, %q) = %q, want %q", tc.stamped, tc.moduleVersion, got, tc.want)
-		}
+		got := resolveVersion(tc.stamped, tc.moduleVersion)
+		require.Equal(t, tc.want, got, "resolveVersion(%q, %q)", tc.stamped, tc.moduleVersion)
 	}
 }
 
@@ -167,9 +159,8 @@ func TestAnswerAccepts(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		if got := answerAccepts(tc.answer, tc.acceptByDefault); got != tc.want {
-			t.Errorf("answerAccepts(%q, %v) = %v, want %v", tc.answer, tc.acceptByDefault, got, tc.want)
-		}
+		got := answerAccepts(tc.answer, tc.acceptByDefault)
+		require.Equal(t, tc.want, got, "answerAccepts(%q, %v)", tc.answer, tc.acceptByDefault)
 	}
 }
 
@@ -221,19 +212,17 @@ func TestConfirm(t *testing.T) {
 			var errOut bytes.Buffer
 			got := confirm(strings.NewReader(tc.answer), &errOut, "main", tc.acceptByDefault)
 
-			if got != tc.want {
-				t.Errorf("confirm() = %v, want %v", got, tc.want)
-			}
+			require.Equal(t, tc.want, got, "confirm()")
 			stderr := errOut.String()
-			if !strings.Contains(stderr, "Use previous branch 'main'?") {
-				t.Errorf("stderr = %q, want it to contain the prompt", stderr)
-			}
-			if !strings.Contains(stderr, tc.wantHint) {
-				t.Errorf("stderr = %q, want it to contain the hint %q", stderr, tc.wantHint)
-			}
-			if aborted := strings.Contains(stderr, "aborted"); aborted != tc.wantAborted {
-				t.Errorf("stderr = %q, aborted reported = %v, want %v", stderr, aborted, tc.wantAborted)
-			}
+			require.Contains(t, stderr, "Use previous branch 'main'?", "stderr")
+			require.Contains(t, stderr, tc.wantHint, "stderr")
+			require.Equal(
+				t,
+				tc.wantAborted,
+				strings.Contains(stderr, "aborted"),
+				"aborted reported (stderr: %q)",
+				stderr,
+			)
 		})
 	}
 }
