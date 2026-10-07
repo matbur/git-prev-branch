@@ -8,11 +8,11 @@ build: ## Build the git-prev-branch binary into the repository root
 	go build -o git-prev-branch ./cmd/git-prev-branch
 
 .PHONY: build-dist
-build-dist: ## Build dist/git-prev-branch for the current GOOS/GOARCH with -trimpath
+build-dist: ## Build dist/git-prev-branch for the current GOOS/GOARCH, trimmed and stripped
 	@mkdir -p dist
 	@out=dist/git-prev-branch; \
 	if [ "$$GOOS" = "windows" ]; then out=$$out.exe; fi; \
-	go build -trimpath -o "$$out" ./cmd/git-prev-branch
+	go build -trimpath -ldflags="-s -w" -o "$$out" ./cmd/git-prev-branch
 
 .PHONY: check
 check: fmt-check vet test check-readme test-scripts ## Run every check that needs only Go and Python
