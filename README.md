@@ -198,6 +198,7 @@ No extra flags are required. Run from an interactive terminal you will be asked 
 | `--path` | `-p` | Path to the Git repository to analyze. Defaults to the current working directory. |
 | `--yes` | `-y` | Accept the detected branch without asking, even on an interactive terminal. `stdout` is unchanged either way — it always receives only the branch name — so this suppresses the prompt, not output or diagnostics. Also makes exit code `2` unreachable. |
 | `--debug` | `-d` | Print decisions to `stderr`: which config file was found, or that the built-in defaults apply, and which `git` commands were run and whether they succeeded. `stdout`, prompts and exit codes are unchanged, so scripts can ignore this flag entirely. |
+| `--version` | `-v` | Print `git-prev-branch <version>` to `stdout` and exit `0`, without reading the repository or the configuration. The version is stamped at build time: `make build` and `make build-dist` use `git describe` (the newest `vX.Y.Z` tag plus distance, the bare commit when no tag is known, `dev` outside a repository); a plain `go build` reports `dev`. |
 
 > **Note:** If no positional argument is provided, the default step value is `1`. For prompt behavior and stream separation, see [Output and prompting](#output-and-prompting).
 
@@ -273,7 +274,7 @@ cd git-prev-branch
 
 The command lives in `cmd/git-prev-branch/`, the library in `gitprevbranch/`, and configuration handling in `internal/config/`; each package keeps its tests next to it.
 
-> **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and both README checks — and `make help` lists every available target.
+> **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and the Python script checks — and `make help` lists every available target.
 
 ## Testing
 
@@ -328,7 +329,7 @@ Please follow standard Go conventions and keep changes consistent with the proje
 make check
 ```
 
-`make check` runs `gofmt`, `go vet`, the Go tests and both README checks — `scripts/check_readme_sync.py` and `scripts/test_check_readme_sync.py`. That is everything CI runs except the `golangci-lint` job (`make lint`, if you have golangci-lint v2 installed). The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
+`make check` runs `gofmt`, `go vet`, the Go tests and the Python script checks — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py` and `scripts/test_next_tag.py`. The CI jobs it does not run are `lint` (`make lint`, if you have golangci-lint v2 installed), the cross-compiling `build` job and the release-publishing `tag` job. The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
 
 ## License
 

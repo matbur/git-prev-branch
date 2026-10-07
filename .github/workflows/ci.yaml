@@ -108,9 +108,16 @@ jobs:
 
   tag:
     name: tag (${{ github.ref_name }})
-    if: github.ref == 'refs/heads/main'
+    # Only push events create releases: a workflow_dispatch on main would
+    # re-publish unchanged code under a new version (README, Quality table).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [test, lint, build]
+    # Serialize releases: two quick merges would otherwise compute the same
+    # next tag from the same fetched tags and the second publish would fail.
+    concurrency:
+      group: release
+      cancel-in-progress: false
     permissions:
       contents: write
       actions: read
@@ -120,18 +127,22 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      # Version bumps follow the *merged PR's* labels: the merge commit
-      # message names the pull request (#N), whose labels decide patch, minor
-      # or major (see scripts/next_tag.py). A push without a PR number, or
-      # without a release label, falls back to a patch bump. A tag push does
-      # not re-trigger this workflow since the `push` trigger filters on
+      # Version bumps follow the *merged PR's* labels: squash merges carry the
+      # pull request as the subject suffix (#N), merge commits as a leading
+      # "Merge pull request #N" line, and that PR's labels decide patch,
+      # minor or major (see scripts/next_tag.py). A push without a PR number,
+      # or without a release label, falls back to a patch bump. A tag push
+      # does not re-trigger this workflow since the `push` trigger filters on
       # branches only.
       - name: read merged PR labels
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pr="$(git log -1 --pretty=%B | grep -oE '#[0-9]+' | tail -1 | tr -d '#')"
+          pr="$(git log -1 --pretty=%s | grep -oE '\(#[0-9]+\)$' | tr -d '()#' || true)"
+          if [ -z "$pr" ]; then
+            pr="$(git log -1 --pretty=%B | grep -oE '^Merge pull request #[0-9]+' | head -1 | tr -dc '0-9' || true)"
+          fi
           if [ -n "$pr" ]; then
             gh pr view "$pr" --json labels --jq '.labels[].name' > "$RUNNER_TEMP/pr-labels" || true
           fi
@@ -141,19 +152,20 @@ jobs:
             echo "labels=$labels" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: create next tag
+      # The tag is not created locally: `gh release create --target` below
+      # creates it server-side as part of publishing, so a failure in any
+      # step before that leaves no tag behind and a re-run recomputes the
+      # same version instead of burning one.
+      - name: compute next tag
         id: tag
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Through env, never ${{ }} into the shell source: a label name is
+          # attacker-influenced text and this step holds GH_TOKEN.
+          LABELS: ${{ steps.pr.outputs.labels }}
         run: |
-          labels="${{ steps.pr.outputs.labels }}"
-          tag="$(python3 scripts/next_tag.py --labels "$labels")"
-          echo "new tag: $tag (labels: $labels)"
+          tag="$(python3 scripts/next_tag.py --labels "$LABELS")"
+          echo "new tag: $tag (labels: $LABELS)"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$tag" -m "release $tag"
-          git push origin "$tag"
 
       # The binaries from the build job become the assets of a Release on the
       # new tag, so every merge ships runnable artifacts (see README, Install).
@@ -165,4 +177,5 @@ jobs:
       - name: publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ steps.tag.outputs.tag }}" --generate-notes release-assets/*/*
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes release-assets/*/*

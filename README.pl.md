@@ -198,6 +198,7 @@ Nie są wymagane żadne dodatkowe flagi. Uruchomione z terminala interaktywnego 
 | `--path` | `-p` | Ścieżka do repozytorium Git do przeanalizowania. Domyślnie bieżący katalog roboczy. |
 | `--yes` | `-y` | Przyjmuje wykrytą gałąź bez pytania, nawet w terminalu interaktywnym. `stdout` pozostaje bez zmian w obu przypadkach — zawsze trafia tam wyłącznie nazwa gałęzi — więc ta flaga wyłącza monit, a nie wyjście ani komunikaty diagnostyczne. Sprawia też, że kod wyjścia `2` jest nieosiągalny. |
 | `--debug` | `-d` | Wypisuje na `stderr` decyzje: który plik konfiguracji został znaleziony, a jeśli żaden — że działają wartości domyślne, oraz które polecenia `git` zostały uruchomione i czy się powiodły. `stdout`, monity i kody wyjścia pozostają bez zmian, więc skrypty mogą w całości zignorować ten flag. |
+| `--version` | `-v` | Wypisuje `git-prev-branch <wersja>` na `stdout` i kończy z kodem `0`, nie czytając repozytorium ani konfiguracji. Wersja jest wklejana przy budowie: `make build` i `make build-dist` używają `git describe` (najnowszy tag `vX.Y.Z` plus dystans, sam commit gdy nie znano taga, `dev` poza repozytorium); zwykły `go build` zwraca `dev`. |
 
 > **Uwaga:** jeśli nie podano argumentu pozycyjnego, domyślną wartością kroku jest `1`. Zachowanie monitów i podział strumieni opisano w sekcji [Wyjście i monity](#wyjście-i-monity).
 
@@ -273,7 +274,7 @@ cd git-prev-branch
 
 Polecenie znajduje się w `cmd/git-prev-branch/`, biblioteka w `gitprevbranch/`, a obsługa konfiguracji w `internal/config/`; testy każdego pakietu leżą obok niego.
 
-> **Uwaga:** `make check` uruchamia każdą lokalną kontrolę — `gofmt`, `go vet`, testy Go i obie kontrole README — a `make help` wypisuje wszystkie dostępne cele.
+> **Uwaga:** `make check` uruchamia każdą lokalną kontrolę — `gofmt`, `go vet`, testy Go oraz kontrole skryptów Pythona — a `make help` wypisuje wszystkie dostępne cele.
 
 ## Testowanie
 
@@ -328,7 +329,7 @@ Przestrzegaj standardowych konwencji Go i utrzymuj zmiany spójne z celami oraz 
 make check
 ```
 
-`make check` uruchamia `gofmt`, `go vet`, testy Go i obie kontrole README — `scripts/check_readme_sync.py` oraz `scripts/test_check_readme_sync.py`. To wszystko, co robi CI, poza jobem `golangci-lint` (`make lint`, jeśli masz zainstalowany golangci-lint v2). Skrypty README nie są równoważne: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
+`make check` uruchamia `gofmt`, `go vet`, testy Go oraz kontrole skryptów Pythona — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py` i `scripts/test_next_tag.py`. Jobów CI, których nie uruchamia, to `lint` (`make lint`, jeśli masz zainstalowany golangci-lint v2), krzyżowo kompilujący job `build` oraz publikujący wydanie job `tag`. Skrypty README nie są równoważne: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
 
 ## Licencja
 
