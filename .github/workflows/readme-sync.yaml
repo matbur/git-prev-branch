@@ -18,7 +18,7 @@ permissions:
 jobs:
   readme-sync:
     name: README.pl.md is in sync with README.md
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
 
