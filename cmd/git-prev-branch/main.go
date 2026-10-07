@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -27,10 +28,36 @@ const (
 	exitAbort   = 2 // aborted at the confirmation prompt: nothing on stdout
 )
 
-// version is what --version prints after the program name. Release builds
-// stamp it through the linker (-ldflags "-X main.version=..."); the default
-// keeps plain `go run` and `go build` informative.
+// version is the build-time stamp for --version. `make build` and
+// `make build-dist` set it through the linker (-ldflags "-X main.version=").
+// When it is left at "dev" — plain `go run`, `go build`, `go install ./...` —
+// reportedVersion falls back to the module version that
+// `go install ...@vX.Y.Z` records in the build info, and only after that
+// reports "dev".
 var version = "dev"
+
+// reportedVersion is what --version prints after the program name.
+func reportedVersion() string {
+	moduleVersion := ""
+	if info, ok := debug.ReadBuildInfo(); ok {
+		moduleVersion = info.Main.Version
+	}
+	return resolveVersion(version, moduleVersion)
+}
+
+// resolveVersion picks the version to report: the build-time stamp wins
+// (it is the most specific), then the module version from the build info
+// (set by `go install ...@vX.Y.Z`; a local main module reports "(devel)"
+// or nothing at all, which is what "dev" describes).
+func resolveVersion(stamped, moduleVersion string) string {
+	if stamped != "dev" {
+		return stamped
+	}
+	if moduleVersion != "" && moduleVersion != "(devel)" {
+		return moduleVersion
+	}
+	return "dev"
+}
 
 const usageText = `git-prev-branch prints the branch n steps back in the Git branch-switch history.
 
@@ -106,7 +133,7 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 	// work anywhere, including outside a git repository, and it reports to
 	// stdout like every other machine-readable answer of this tool.
 	if opts.Version {
-		fmt.Fprintf(out, "git-prev-branch %s\n", version)
+		fmt.Fprintf(out, "git-prev-branch %s\n", reportedVersion())
 		return exitSuccess
 	}
 
