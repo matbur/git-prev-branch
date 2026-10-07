@@ -38,6 +38,30 @@ func TestRunArgumentParsing(t *testing.T) {
 			wantStderr: `expected string value but got "EOL"`,
 		},
 		{
+			name:       "long path flag without a value",
+			args:       []string{"--path"},
+			wantCode:   exitError,
+			wantStderr: `expected string value but got "EOL"`,
+		},
+		{
+			name:       "config flag without a value",
+			args:       []string{"-c"},
+			wantCode:   exitError,
+			wantStderr: `expected string value but got "EOL"`,
+		},
+		{
+			name:       "long config flag without a value",
+			args:       []string{"--config"},
+			wantCode:   exitError,
+			wantStderr: `expected string value but got "EOL"`,
+		},
+		{
+			name:       "help does not mask a following unknown flag",
+			args:       []string{"-h", "--bogus"},
+			wantCode:   exitError,
+			wantStderr: "unknown flag --bogus",
+		},
+		{
 			name:       "negative step after --",
 			args:       []string{"--", "-1"},
 			wantCode:   exitError,

@@ -241,6 +241,39 @@ func TestEndToEndSuccess(t *testing.T) {
 			inv:  invocation{dir: t.TempDir(), args: []string{"-y", "--path", repo}},
 			want: "other",
 		},
+		{
+			name: "--path=path equals syntax",
+			inv:  invocation{dir: t.TempDir(), args: []string{"-y", "--path=" + repo}},
+			want: "other",
+		},
+		{
+			name: "explicit config file via -c",
+			inv:  invocation{dir: repo, args: []string{"-y", "-c", configWithAction(t, "accept")}},
+			want: "other",
+		},
+		{
+			name: "long --config flag",
+			inv:  invocation{dir: repo, args: []string{"-y", "--config", configWithAction(t, "reject")}},
+			want: "other",
+		},
+		{
+			name: "--config=path equals syntax",
+			inv:  invocation{dir: repo, args: []string{"-y", "--config=" + configWithAction(t, "accept")}},
+			want: "other",
+		},
+		{
+			name: "repository-level config file discovered from the binary",
+			inv:  invocation{dir: repoWithConfig(t, "interactive:\n  default_action: accept\n"), args: []string{"-y"}},
+			want: "other",
+		},
+		{
+			name: "-c wins over a broken repository-level config",
+			inv: invocation{
+				dir:  repoWithConfig(t, "interactive: [broken\n"),
+				args: []string{"-y", "-c", configWithAction(t, "reject")},
+			},
+			want: "other",
+		},
 	}
 
 	for _, tc := range cases {
@@ -333,6 +366,24 @@ func TestEndToEndErrorsLeaveStdoutEmpty(t *testing.T) {
 			inv:        invocation{dir: repo, args: []string{"-y", "-c", badValue}},
 			wantStderr: "default_action",
 		},
+		{
+			name:       "config flag without a value",
+			inv:        invocation{dir: repo, args: []string{"-y", "-c"}},
+			wantStderr: `expected string value but got "EOL"`,
+		},
+		{
+			name: "--config=path with a missing file",
+			inv: invocation{
+				dir:  repo,
+				args: []string{"-y", "--config=" + filepath.Join(t.TempDir(), "missing.yaml")},
+			},
+			wantStderr: "config file not found",
+		},
+		{
+			name:       "malformed repository-level config is discovered and rejected",
+			inv:        invocation{dir: repoWithConfig(t, "interactive: [broken\n"), args: []string{"-y"}},
+			wantStderr: "malformed config file",
+		},
 	}
 
 	for _, tc := range cases {
@@ -366,9 +417,61 @@ func TestEndToEndHelp(t *testing.T) {
 	}
 }
 
+// TestEndToEndDebugWritesOnlyToStderr checks the --debug family from the
+// outside: both spellings and the bundled short form must keep stdout to the
+// branch name alone while the diagnostics land on stderr.
+func TestEndToEndDebugWritesOnlyToStderr(t *testing.T) {
+	repo := e2eRepo(t)
+
+	for _, flag := range []string{"-d", "--debug", "-yd"} {
+		t.Run(flag, func(t *testing.T) {
+			stdout, stderr, code := invocation{dir: repo, args: []string{flag}}.run(t)
+
+			if code != wantExitSuccess {
+				t.Fatalf("exit code = %d, want %d (stderr: %s)", code, wantExitSuccess, stderr)
+			}
+			if want := "other\n"; stdout != want {
+				t.Errorf("stdout = %q, want %q", stdout, want)
+			}
+			for _, want := range []string{
+				"debug: previous branch: other",
+				"debug: running: git -C ",
+			} {
+				if !strings.Contains(stderr, want) {
+					t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+				}
+			}
+		})
+	}
+}
+
+// configWithAction writes a config file with the given default_action and
+// returns its path, for the -c/--config flag cases.
+func configWithAction(t *testing.T, action string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	writeTestFile(t, path, "interactive:\n  default_action: "+action+"\n")
+	return path
+}
+
+// repoWithConfig builds a fresh repository carrying a repository-level
+// config file, for the cases that exercise config discovery through the
+// real binary.
+func repoWithConfig(t *testing.T, content string) string {
+	t.Helper()
+
+	repo := e2eRepo(t)
+	writeTestFile(t, filepath.Join(repo, ".config", "git-prev-branch", "config.yaml"), content)
+	return repo
+}
+
 func writeTestFile(t *testing.T, path, content string) {
 	t.Helper()
 
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
+	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)
 	}
