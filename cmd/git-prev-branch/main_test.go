@@ -69,6 +69,8 @@ func TestRunArgumentParsing(t *testing.T) {
 		},
 		{name: "help", args: []string{"-h"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
 		{name: "long help", args: []string{"--help"}, wantCode: exitSuccess, wantStdoutHas: "Usage:"},
+		{name: "version", args: []string{"-v"}, wantCode: exitSuccess, wantStdoutHas: "git-prev-branch "},
+		{name: "long version", args: []string{"--version"}, wantCode: exitSuccess, wantStdoutHas: "git-prev-branch "},
 	}
 
 	for _, tc := range cases {

@@ -27,6 +27,11 @@ const (
 	exitAbort   = 2 // aborted at the confirmation prompt: nothing on stdout
 )
 
+// version is what --version prints after the program name. Release builds
+// stamp it through the linker (-ldflags "-X main.version=..."); the default
+// keeps plain `go run` and `go build` informative.
+var version = "dev"
+
 const usageText = `git-prev-branch prints the branch n steps back in the Git branch-switch history.
 
 Usage:
@@ -42,6 +47,7 @@ Flags:
                       (default: the current working directory)
   -y, --yes           accept the detected branch without prompting
   -d, --debug         print decisions and git commands to stderr
+  -v, --version       print the version and exit
   -h, --help          show this help
 
 stdout receives only the branch name; prompts and diagnostics go to stderr.
@@ -51,11 +57,12 @@ Exit codes: 0 success, 1 error, 2 aborted at the confirmation prompt.
 // cli is the whole command line grammar; kong turns the tags into flags and
 // the positional argument, so there is no hand-written argument parsing left.
 type cli struct {
-	Config string `short:"c" help:"path to a custom configuration file"`
-	Path   string `short:"p" help:"path to the Git repository to analyze (default: the current working directory)"`
-	Yes    bool   `short:"y" help:"accept the detected branch without prompting"`
-	Debug  bool   `short:"d" help:"print decisions and git commands to stderr"`
-	Step   int    `          help:"how many steps back through the branch-switch history (0 is the current branch)" arg:"" optional:"" default:"1"`
+	Config  string `short:"c" help:"path to a custom configuration file"`
+	Path    string `short:"p" help:"path to the Git repository to analyze (default: the current working directory)"`
+	Yes     bool   `short:"y" help:"accept the detected branch without prompting"`
+	Debug   bool   `short:"d" help:"print decisions and git commands to stderr"`
+	Version bool   `short:"v" help:"print the version and exit"`
+	Step    int    `          help:"how many steps back through the branch-switch history (0 is the current branch)" arg:"" optional:"" default:"1"`
 }
 
 func main() {
@@ -93,6 +100,14 @@ func run(args []string, in *os.File, out, errOut io.Writer) int {
 		fmt.Fprintf(errOut, "error: %v\n", parseErr)
 		fmt.Fprint(errOut, usageText)
 		return exitError
+	}
+
+	// --version is answered before any repository or config work: it must
+	// work anywhere, including outside a git repository, and it reports to
+	// stdout like every other machine-readable answer of this tool.
+	if opts.Version {
+		fmt.Fprintf(out, "git-prev-branch %s\n", version)
+		return exitSuccess
 	}
 
 	// Only reachable as `git-prev-branch -- -1`: kong rejects bare "-1" as an

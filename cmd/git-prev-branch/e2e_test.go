@@ -44,14 +44,16 @@ func TestMain(m *testing.M) {
 	binaryPath = filepath.Join(tmp, name)
 
 	// The tests run in the package directory, but the binary is built from
-	// the module root, so "./cmd/git-prev-branch" resolves there.
+	// the module root, so "./cmd/git-prev-branch" resolves there. The build
+	// stamps a known version so the --version cases can assert the exact
+	// line and prove the -ldflags "-X main.version=..." mechanism works.
 	root, err := moduleRoot()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "module root: %v\n", err)
 		_ = os.RemoveAll(tmp)
 		os.Exit(1)
 	}
-	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/git-prev-branch")
+	build := exec.Command("go", "build", "-ldflags=-X main.version=e2e-test", "-o", binaryPath, "./cmd/git-prev-branch")
 	build.Dir = root
 	if out, buildErr := build.CombinedOutput(); buildErr != nil {
 		fmt.Fprintf(os.Stderr, "go build: %v\n%s", buildErr, out)
@@ -414,6 +416,26 @@ func TestEndToEndHelp(t *testing.T) {
 	}
 	if stderr != "" {
 		t.Errorf("stderr = %q, want it empty for -h", stderr)
+	}
+}
+
+// TestEndToEndVersion prints the stamped version and exits 0 without ever
+// touching a repository: the case runs in an empty directory on purpose.
+func TestEndToEndVersion(t *testing.T) {
+	for _, flag := range []string{"-v", "--version"} {
+		t.Run(flag, func(t *testing.T) {
+			stdout, stderr, code := invocation{dir: t.TempDir(), args: []string{flag}}.run(t)
+
+			if code != wantExitSuccess {
+				t.Fatalf("exit code = %d, want %d (stderr: %s)", code, wantExitSuccess, stderr)
+			}
+			if want := "git-prev-branch e2e-test\n"; stdout != want {
+				t.Errorf("stdout = %q, want %q", stdout, want)
+			}
+			if stderr != "" {
+				t.Errorf("stderr = %q, want it empty for --version", stderr)
+			}
+		})
 	}
 }
 

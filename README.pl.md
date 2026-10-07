@@ -198,6 +198,7 @@ Nie są wymagane żadne dodatkowe flagi. Uruchomione z terminala interaktywnego 
 | `--path` | `-p` | Ścieżka do repozytorium Git do przeanalizowania. Domyślnie bieżący katalog roboczy. |
 | `--yes` | `-y` | Przyjmuje wykrytą gałąź bez pytania, nawet w terminalu interaktywnym. `stdout` pozostaje bez zmian w obu przypadkach — zawsze trafia tam wyłącznie nazwa gałęzi — więc ta flaga wyłącza monit, a nie wyjście ani komunikaty diagnostyczne. Sprawia też, że kod wyjścia `2` jest nieosiągalny. |
 | `--debug` | `-d` | Wypisuje na `stderr` decyzje: który plik konfiguracji został znaleziony, a jeśli żaden — że działają wartości domyślne, oraz które polecenia `git` zostały uruchomione i czy się powiodły. `stdout`, monity i kody wyjścia pozostają bez zmian, więc skrypty mogą w całości zignorować ten flag. |
+| `--version` | `-v` | Wypisuje `git-prev-branch <wersja>` na `stdout` i kończy z kodem `0`, nie czytając repozytorium ani konfiguracji. Wersja jest wklejana przy budowie: `make build` i `make build-dist` używają `git describe` (najnowszy tag `vX.Y.Z` plus dystans, sam commit gdy nie znano taga, `dev` poza repozytorium); zwykły `go build` zwraca `dev`. |
 
 > **Uwaga:** jeśli nie podano argumentu pozycyjnego, domyślną wartością kroku jest `1`. Zachowanie monitów i podział strumieni opisano w sekcji [Wyjście i monity](#wyjście-i-monity).
 

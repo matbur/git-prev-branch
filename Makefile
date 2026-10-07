@@ -3,16 +3,22 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
+# Version stamped into the binary (see `version` in cmd/git-prev-branch):
+# the newest vX.Y.Z tag plus distance, the bare commit when no tag is known
+# (a fresh CI checkout), or "dev" outside a repository. Override per build:
+# make build VERSION=v1.2.3.
+VERSION ?= $(shell git describe --tags --match 'v[0-9]*' --always --dirty 2>/dev/null || echo dev)
+
 .PHONY: build
 build: ## Build the git-prev-branch binary into the repository root
-	go build -o git-prev-branch ./cmd/git-prev-branch
+	go build -ldflags "-X main.version=$(VERSION)" -o git-prev-branch ./cmd/git-prev-branch
 
 .PHONY: build-dist
 build-dist: ## Build dist/git-prev-branch for the current GOOS/GOARCH, trimmed and stripped
 	@mkdir -p dist
 	@out=dist/git-prev-branch; \
 	if [ "$$GOOS" = "windows" ]; then out=$$out.exe; fi; \
-	go build -trimpath -ldflags="-s -w" -o "$$out" ./cmd/git-prev-branch
+	go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" -o "$$out" ./cmd/git-prev-branch
 
 .PHONY: check
 check: fmt-check vet test check-readme test-scripts ## Run every check that needs only Go and Python

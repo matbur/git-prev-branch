@@ -198,6 +198,7 @@ No extra flags are required. Run from an interactive terminal you will be asked 
 | `--path` | `-p` | Path to the Git repository to analyze. Defaults to the current working directory. |
 | `--yes` | `-y` | Accept the detected branch without asking, even on an interactive terminal. `stdout` is unchanged either way — it always receives only the branch name — so this suppresses the prompt, not output or diagnostics. Also makes exit code `2` unreachable. |
 | `--debug` | `-d` | Print decisions to `stderr`: which config file was found, or that the built-in defaults apply, and which `git` commands were run and whether they succeeded. `stdout`, prompts and exit codes are unchanged, so scripts can ignore this flag entirely. |
+| `--version` | `-v` | Print `git-prev-branch <version>` to `stdout` and exit `0`, without reading the repository or the configuration. The version is stamped at build time: `make build` and `make build-dist` use `git describe` (the newest `vX.Y.Z` tag plus distance, the bare commit when no tag is known, `dev` outside a repository); a plain `go build` reports `dev`. |
 
 > **Note:** If no positional argument is provided, the default step value is `1`. For prompt behavior and stream separation, see [Output and prompting](#output-and-prompting).
 
