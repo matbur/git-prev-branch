@@ -121,6 +121,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    # The freshly published tag, handed over to the docker job below.
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -179,3 +182,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes release-assets/*/*
+
+  # The image follows the tag, never precedes it: `needs: [tag]` means the
+  # build runs only after test/lint/build went green and the vX.Y.Z tag was
+  # published — and it is skipped together with the tag job on PRs. The build
+  # itself lives in docker.yaml, called here because a tag created with
+  # GITHUB_TOKEN fires no event (see the comment at the top of that file).
+  docker:
+    name: docker
+    needs: [tag]
+    uses: ./.github/workflows/docker.yaml
+    with:
+      version: ${{ needs.tag.outputs.tag }}
+    secrets: inherit

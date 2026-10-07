@@ -4,14 +4,23 @@ name: docker
 # (README, "Installation -> Docker"). Two tags are pushed for every vX.Y.Z
 # release: `latest` and the version itself.
 #
-# The build runs only for a git tag. The tag job in ci.yaml creates that tag
-# via `gh release create` only after test/lint/build succeeded on main, so a
-# green CI is exactly what starts this workflow: no ci, no tag, no image.
-# `gh release create` makes the tag server-side, which fires the `create`
-# event rather than `push`, hence the trigger here (a git-pushed tag creates
-# the ref too, so no event is missed).
+# The build runs only for a git tag, in two ways:
+#   * workflow_call — ci.yaml's docker job, which needs the tag job; the tag
+#     job creates the vX.Y.Z tag via `gh release create` only after
+#     test/lint/build succeeded on main, so a green CI is exactly what ships
+#     the image. The call is needed because `gh release create` makes the tag
+#     with GITHUB_TOKEN, and events created by that token never start a
+#     workflow run — a `create` trigger alone would never see CI tags.
+#   * create — a tag pushed by hand (own credentials do fire the event);
+#     branch creations are filtered out by the job's `if`.
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: Git tag (vX.Y.Z) the image is built from.
+        required: true
+        type: string
   create:
 
 permissions:
@@ -20,8 +29,10 @@ permissions:
 jobs:
   build:
     name: build and push image
-    # A branch creation is not a release; only tags build.
-    if: github.ref_type == 'tag'
+    # A branch creation is not a release; only tags build. That filter is
+    # needed for `create` alone: a workflow_call runs on the caller's branch
+    # ref (the merge commit on main that the tag job just tagged).
+    if: github.event_name != 'create' || github.ref_type == 'tag'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -44,14 +55,15 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # The version stamped with -X main.version, exactly like `make build`:
-      # on a tag trigger it is the tag name itself.
+      # the tag passed by the ci.yaml tag job, or the tag name itself when
+      # the workflow was triggered by a hand-pushed tag.
       - name: resolve version
         id: version
         env:
-          REF_NAME: ${{ github.ref_name }}
+          VERSION: ${{ inputs.version || github.ref_name }}
         run: |
-          echo "version=$REF_NAME"
-          echo "version=$REF_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # The matching docker tag: the version, sanitised (a hand-made tag may
       # contain characters docker does not accept, e.g. a slash). Keep case
@@ -60,9 +72,9 @@ jobs:
       - name: compute tag suffix
         id: tag
         env:
-          REF_NAME: ${{ github.ref_name }}
+          VERSION: ${{ inputs.version || github.ref_name }}
         run: |
-          suffix="$(printf '%s' "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g' | sed -E 's#^-+##; s#-+$##')"
+          suffix="$(printf '%s' "$VERSION" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g' | sed -E 's#^-+##; s#-+$##')"
           echo "suffix=$suffix"
           echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
 
