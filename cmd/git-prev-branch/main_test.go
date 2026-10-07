@@ -123,6 +123,31 @@ func TestRunDebugPrintsDiagnosticsToStderr(t *testing.T) {
 	}
 }
 
+func TestResolveVersion(t *testing.T) {
+	cases := []struct {
+		stamped       string
+		moduleVersion string
+		want          string
+	}{
+		{stamped: "v1.2.3", moduleVersion: "v9.9.9", want: "v1.2.3"}, // the stamp wins
+		{stamped: "v1.2.3", moduleVersion: "(devel)", want: "v1.2.3"},
+		{stamped: "dev", moduleVersion: "v1.0.1", want: "v1.0.1"}, // go install ...@vX.Y.Z
+		{
+			stamped:       "dev",
+			moduleVersion: "v0.0.0-20261007101010-abcdef123456",
+			want:          "v0.0.0-20261007101010-abcdef123456", // go install ...@main
+		},
+		{stamped: "dev", moduleVersion: "(devel)", want: "dev"}, // plain go build/run
+		{stamped: "dev", moduleVersion: "", want: "dev"},        // no build info at all
+	}
+
+	for _, tc := range cases {
+		if got := resolveVersion(tc.stamped, tc.moduleVersion); got != tc.want {
+			t.Errorf("resolveVersion(%q, %q) = %q, want %q", tc.stamped, tc.moduleVersion, got, tc.want)
+		}
+	}
+}
+
 func TestAnswerAccepts(t *testing.T) {
 	cases := []struct {
 		answer          string
