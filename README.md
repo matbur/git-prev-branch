@@ -273,7 +273,7 @@ cd git-prev-branch
 
 The command lives in `cmd/git-prev-branch/`, the library in `gitprevbranch/`, and configuration handling in `internal/config/`; each package keeps its tests next to it.
 
-> **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and both README checks — and `make help` lists every available target.
+> **Note:** `make check` runs every local check — `gofmt`, `go vet`, the Go tests and the Python script checks — and `make help` lists every available target.
 
 ## Testing
 
@@ -328,7 +328,7 @@ Please follow standard Go conventions and keep changes consistent with the proje
 make check
 ```
 
-`make check` runs `gofmt`, `go vet`, the Go tests and both README checks — `scripts/check_readme_sync.py` and `scripts/test_check_readme_sync.py`. That is everything CI runs except the `golangci-lint` job (`make lint`, if you have golangci-lint v2 installed). The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
+`make check` runs `gofmt`, `go vet`, the Go tests and the Python script checks — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py` and `scripts/test_next_tag.py`. The CI jobs it does not run are `lint` (`make lint`, if you have golangci-lint v2 installed), the cross-compiling `build` job and the release-publishing `tag` job. The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
 
 ## License
 
