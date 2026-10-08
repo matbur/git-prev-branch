@@ -7,7 +7,7 @@
 [![Go Build](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml/badge.svg)](https://github.com/matbur/git-prev-branch/actions/workflows/ci.yaml)
 
 <p align="center">
-  <img src="assets/icon.svg" alt="git-prev-branch icon" width="120">
+  <img src="assets/icon-anim.gif" alt="git-prev-branch icon" width="120">
 </p>
 
 [🇬🇧 English](README.md) | **[🇵🇱 Polski](README.pl.md)**
