@@ -115,8 +115,6 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true') }}
     runs-on: ubuntu-26.04
-    permissions:
-      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -129,28 +127,14 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # A gate only: every merge ships its binaries from the tag job below,
+      # which knows the version to stamp (see the comment there).
       - name: cross-compile
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: |
-          make build-dist
-          # Rename to a platform-qualified binary so every release asset name
-          # is unique; gh release create 404s on same-named assets.
-          if [ "$GOOS" = "windows" ]; then
-            mv dist/git-prev-branch.exe "dist/git-prev-branch-${GOOS}-${GOARCH}.exe"
-          else
-            mv dist/git-prev-branch "dist/git-prev-branch-${GOOS}-${GOARCH}"
-          fi
-
-      # Each matrix cell uploads its single binary; the tag job later
-      # reassembles all six into the Release published on the new tag.
-      - name: upload binary
-        uses: actions/upload-artifact@v7
-        with:
-          name: git-prev-branch-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/git-prev-branch*
+        run: make build-dist
 
   tag:
     name: tag (${{ github.ref_name }})
@@ -166,8 +150,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      actions: read
-    # The freshly published tag, handed over to the docker job below.
+    # The freshly published tag, handed over to the docker and homebrew jobs.
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
@@ -175,6 +158,10 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
 
       # Version bumps follow the *merged PR's* labels: squash merges carry the
       # pull request as the subject suffix (#N), merge commits as a leading
@@ -216,18 +203,42 @@ jobs:
           echo "new tag: $tag (labels: $LABELS)"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      # The binaries from the build job become the assets of a Release on the
-      # new tag, so every merge ships runnable artifacts (see README, Install).
-      - name: download built binaries
-        uses: actions/download-artifact@v8
-        with:
-          path: release-assets
+      # The release assets are built here, not in the build matrix: only this
+      # job knows the tag, so stamping with `make build-dist VERSION=$TAG`
+      # puts the exact vX.Y.Z into `--version` (a describe of the pre-tag
+      # commit would leak the previous version). tarballs for the Homebrew
+      # formula (prebuilt `url`s), the raw .exe kept for Windows users.
+      - name: build release binaries
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p release-assets
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            echo "::group::building $goos/$goarch"
+            GOOS="$goos" GOARCH="$goarch" make build-dist VERSION="$TAG"
+            if [ "$goos" = "windows" ]; then
+              # Unique asset names: gh release create 404s on duplicates.
+              mv dist/git-prev-branch.exe "release-assets/git-prev-branch-$goos-$goarch.exe"
+            else
+              tar -C dist -czf "release-assets/git-prev-branch-$goos-$goarch.tar.gz" git-prev-branch
+            fi
+            echo "::endgroup::"
+          done
+
+      # SHA256SUMS is both a release asset for humans and the input of the
+      # homebrew job, which hashes nothing itself.
+      - name: checksum release assets
+        working-directory: release-assets
+        run: sha256sum * > SHA256SUMS
 
       - name: publish release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
-        run: gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes release-assets/*/*
+        run: gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes release-assets/*
 
   # The image follows the tag, never precedes it: `needs: [tag]` means the
   # build runs only after test/lint/build went green and the vX.Y.Z tag was
@@ -241,3 +252,69 @@ jobs:
     with:
       version: ${{ needs.tag.outputs.tag }}
     secrets: inherit
+
+  # The formula follows the release: `needs: [tag]` runs it only after the
+  # vX.Y.Z release is published, and it is skipped together with the tag job
+  # on PRs. It regenerates Formula/git-prev-branch.rb in the general-purpose
+  # tap matbur/homebrew-tap (which can host formulas of other apps too) and
+  # pushes only when something changed. The push authenticates with a deploy
+  # key: GITHUB_TOKEN is scoped to this repository and cannot write to
+  # another one (README, "Installation -> Homebrew").
+  homebrew:
+    name: homebrew
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [tag]
+    runs-on: ubuntu-26.04
+    # The release group is shared with the tag job, so two quick merges
+    # cannot push to the tap concurrently (the loser would be rejected as
+    # non-fast-forward) and the newer formula is always pushed last.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      # Only the checksum file travels between jobs: it was written by the
+      # tag job and published together with the tarballs it describes.
+      - name: download checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.tag.outputs.tag }}
+        run: gh release download "$TAG" --pattern SHA256SUMS --dir "$RUNNER_TEMP"
+
+      - name: checkout the tap
+        uses: actions/checkout@v7
+        with:
+          repository: matbur/homebrew-tap
+          path: tap
+          ssh-key: ${{ secrets.TAP_DEPLOY_KEY }}
+
+      - name: update the formula
+        env:
+          TAG: ${{ needs.tag.outputs.tag }}
+        run: |
+          python3 scripts/update_homebrew_formula.py \
+            --name git-prev-branch \
+            --repo matbur/git-prev-branch \
+            --desc "Determine the previous git branch you switched from" \
+            --homepage https://github.com/matbur/git-prev-branch \
+            --tag "$TAG" \
+            --shas "$RUNNER_TEMP/SHA256SUMS" \
+            --tap-dir tap
+
+      - name: commit and push
+        env:
+          TAG: ${{ needs.tag.outputs.tag }}
+        working-directory: tap
+        # --porcelain catches a formula that does not exist yet, which
+        # `git diff --quiet` would silently report as "no changes".
+        run: |
+          if [ -z "$(git status --porcelain -- Formula/git-prev-branch.rb)" ]; then
+            echo "formula already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/git-prev-branch.rb
+          git commit -m "git-prev-branch $TAG"
+          git push

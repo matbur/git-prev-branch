@@ -28,9 +28,15 @@ A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you
 
 You can install `git-prev-branch` using one of the following methods:
 
-> **Note:** Homebrew distribution is planned for later via a separate tap repository (`matbur/homebrew-tap`); see Roadmap.
+### 1. Homebrew
 
-### 1. Go install
+```bash
+brew install matbur/tap/git-prev-branch
+```
+
+Install from [`matbur/homebrew-tap`](https://github.com/matbur/homebrew-tap), a general-purpose tap that carries formulas for several command-line tools (each one published by its own release pipeline) — `brew` adds the tap automatically as part of the command above. The formula installs prebuilt binaries for macOS and Linux (amd64 and arm64), so no Go toolchain is needed, and `brew upgrade` picks up every new `vX.Y.Z` release.
+
+### 2. Go install
 
 Requires [Go](https://go.dev/dl/) installed on your system.
 
@@ -40,7 +46,7 @@ go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 
 This will install the binary to your `$GOPATH/bin` (or `$GOBIN`). Make sure it's included in your `PATH`.
 
-### 2. Manual build from source
+### 3. Manual build from source
 
 ```bash
 git clone https://github.com/matbur/git-prev-branch.git
@@ -50,7 +56,7 @@ go build
 
 The resulting binary will be available in the current directory. You can move it to a location in your `PATH`.
 
-### 3. Docker
+### 4. Docker
 
 A ready-made image is published to [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch): it contains nothing but Git and the `git-prev-branch` binary, and is rebuilt automatically on every merge to `main` and on every `vX.Y.Z` tag. Mount the current repository at `/repo` (the image's work directory) and alias the whole command:
 
@@ -309,9 +315,9 @@ To maintain high code quality and streamline releases, the project runs the foll
 | **Versioning tags** | A new `vX.Y.Z` tag on every merge to `main`, bumped by the merged PR's `major`/`minor`/`patch release` label (`patch` when none). | Predictable release points and simple, incremental versioning. |
 | **Release publishing** | Automated GitHub Releases (including changelogs and prebuilt binaries). | Simple, predictable distribution. |
 | **Docker publishing** | The `Dockerfile` is built and published to Docker Hub on every merge to `main` and on every `vX.Y.Z` tag. | Ready-to-run image; no Git or Go install needed. |
-| **Homebrew preparation** | Automated updates to the tap formula as part of the release pipeline. | Seamless updates for Homebrew users. |
+| **Homebrew publishing** | The `homebrew` job regenerates `Formula/git-prev-branch.rb` in `matbur/homebrew-tap` and pushes it whenever a `vX.Y.Z` release is published. | `brew upgrade` follows every release; no manual formula bumps. |
 
-> **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml`, the Docker image in `.github/workflows/docker.yaml`; the Homebrew tap is still to come.
+> **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml` (including the `homebrew` job), the Docker image in `.github/workflows/docker.yaml`.
 
 ## Roadmap
 
@@ -324,7 +330,7 @@ To maintain high code quality and streamline releases, the project runs the foll
 - [x] Define and stabilize the public Go library API (`github.com/matbur/git-prev-branch/gitprevbranch`)
 - [x] Add unit and integration tests
 - [x] Set up CI (linting, tests, multi-platform builds)
-- [ ] Prepare and publish Homebrew tap and formula
+- [x] Prepare and publish Homebrew tap and formula
 - [ ] Create first stable release with binaries
 
 ## Contributing
@@ -342,7 +348,7 @@ Please follow standard Go conventions and keep changes consistent with the proje
 make check
 ```
 
-`make check` runs `gofmt`, `go vet`, the Go tests and the Python script checks — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py` and `scripts/test_next_tag.py`. The CI jobs it does not run are `lint` (`make lint`, if you have golangci-lint v2 installed), the cross-compiling `build` job and the release-publishing `tag` job. The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
+`make check` runs `gofmt`, `go vet`, the Go tests and the Python script checks — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py`, `scripts/test_next_tag.py` and `scripts/test_update_homebrew_formula.py`. The CI jobs it does not run are `lint` (`make lint`, if you have golangci-lint v2 installed), the cross-compiling `build` job, the release-publishing `tag` job and the `homebrew` job that pushes the formula. The two README scripts are not interchangeable: the self-tests mutate literal lines copied from both READMEs, so an edit to one of those lines fails there while the sync check still passes.
 
 ## License
 
