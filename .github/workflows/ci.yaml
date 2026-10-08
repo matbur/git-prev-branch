@@ -22,8 +22,50 @@ defaults:
     shell: bash
 
 jobs:
+  # Docs-only pull requests (READMEs, LICENSE, assets) skip the Go checks
+  # below: `changes` classifies the PR and the jobs gate on its output.
+  # readme-sync stays a separate workflow, so the README invariants are still
+  # enforced on exactly those PRs. Pure git diff -- no API, no third-party
+  # filter action -- and anything but a pull request reports docs_only=false,
+  # so pushes to main always run the full pipeline the tag job needs.
+  changes:
+    name: changes
+    runs-on: ubuntu-26.04
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The base commit is only in history with a full clone.
+          fetch-depth: 0
+
+      - name: detect docs-only pull request
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          # The PR's base tip at event time; correct even for outdated PRs.
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          docs_only=false
+          if [ "$EVENT" = "pull_request" ] && files="$(git -c core.quotePath=false diff --name-only --no-renames "$PR_BASE" HEAD)"; then
+            docs_only=true
+            while IFS= read -r f; do
+              case "$f" in
+                ""|README.md|README.pl.md|LICENSE|assets/*) ;;
+                *) docs_only=false; break ;;
+              esac
+            done <<< "$files"
+          fi
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+
   test:
     name: test (${{ matrix.os }})
+    needs: changes
+    # An unset docs_only (filter error) is != 'true', so classification
+    # problems still run the tests; !cancelled() removes the implicit
+    # success() gate, so a red `changes` job runs these checks instead of
+    # skipping them -- skipped checks report success to required checks.
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true') }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +86,8 @@ jobs:
 
   lint:
     name: lint
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true') }}
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -68,6 +112,8 @@ jobs:
 
   build:
     name: build (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true') }}
     runs-on: ubuntu-26.04
     permissions:
       actions: write
