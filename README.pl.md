@@ -28,9 +28,15 @@ Lekkie narzędzie CLI dla użytkowników Gita, napisane w Go. `git-prev-branch` 
 
 Możesz zainstalować `git-prev-branch` jedną z poniższych metod:
 
-> **Uwaga:** dystrybucja przez Homebrew jest planowana na później przez osobny repo-tap (`matbur/homebrew-tap`); zobacz Plan rozwoju.
+### 1. Homebrew
 
-### 1. Instalacja przez Go
+```bash
+brew install matbur/tap/git-prev-branch
+```
+
+Instalacja z [`matbur/homebrew-tap`](https://github.com/matbur/homebrew-tap) — uniwersalnego tapu z formułami dla kilku narzędzi CLI (każda publikowana przez własny potok wydania) — `brew` dodaje go automatycznie w ramach powyższego polecenia. Formuła instaluje gotowe binarki dla macOS i Linuksa (amd64 i arm64), więc toolchain Go nie jest potrzebny, a `brew upgrade` pobiera każde nowe wydanie `vX.Y.Z`.
+
+### 2. Instalacja przez Go
 
 Wymaga zainstalowanego w systemie [Go](https://go.dev/dl/).
 
@@ -40,7 +46,7 @@ go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
 
 Zainstaluje to plik binarny do katalogu `$GOPATH/bin` (lub `$GOBIN`). Upewnij się, że katalog ten znajduje się w `PATH`.
 
-### 2. Ręczna kompilacja ze źródeł
+### 3. Ręczna kompilacja ze źródeł
 
 ```bash
 git clone https://github.com/matbur/git-prev-branch.git
@@ -50,7 +56,7 @@ go build
 
 Powstały plik binarny będzie dostępny w bieżącym katalogu. Możesz go przenieść do lokalizacji na swojej ścieżce `PATH`.
 
-### 3. Docker
+### 4. Docker
 
 Gotowy obraz jest publikowany na [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch): zawiera wyłącznie Gita i binarkę `git-prev-branch`, a przebudowywany jest automatycznie przy każdym mergu do `main` oraz przy każdym tagu `vX.Y.Z`. Zamontuj bieżące repozytorium w `/repo` (katalogu roboczym obrazu) i zaliasuj całe polecenie:
 
@@ -309,9 +315,9 @@ Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z nas
 | **Tagi wersji** | Nowy tag `vX.Y.Z` przy każdym mergu do `main`, podbijany labelką `major`/`minor`/`patch release` zmerged PR (`patch`, gdy braku brak). | Przewidywalne punkty wydania i proste, przyrostowe wersjonowanie. |
 | **Publikowanie wydań** | Zautomatyzowane GitHub Releases (wraz z changelogami i gotowymi plikami binarnymi). | Prosta i przewidywalna dystrybucja. |
 | **Publikowanie Dockera** | `Dockerfile` jest budowany i publikowany na Docker Hub przy każdym mergu do `main` oraz przy każdym tagu `vX.Y.Z`. | Gotowy do uruchomienia obraz; instalacja Gita ani Go nie jest potrzebna. |
-| **Przygotowanie Homebrew** | Automatyczne aktualizacje formuły w tapie w ramach potoku wydania. | Bezproblemowe aktualizacje dla użytkowników Homebrew. |
+| **Publikowanie Homebrew** | Job `homebrew` regeneruje `Formula/git-prev-branch.rb` w `matbur/homebrew-tap` i wypycha go przy każdym opublikowanym wydaniu `vX.Y.Z`. | `brew upgrade` podąża za każdym wydaniem; ręczne bumpowanie formuły niepotrzebne. |
 
-> **Uwaga:** joby CI kodu, lintingu, kompilacji krzyżowej i wydań znajdują się w pliku `.github/workflows/ci.yaml`, obraz Docker w `.github/workflows/docker.yaml`; tap Homebrew powstaną później.
+> **Uwaga:** joby CI kodu, lintingu, kompilacji krzyżowej i wydań znajdują się w pliku `.github/workflows/ci.yaml` (wraz z jobem `homebrew`), obraz Docker w `.github/workflows/docker.yaml`.
 
 ## Plan rozwoju
 
@@ -324,7 +330,7 @@ Aby utrzymać wysoką jakość kodu i usprawnić wydania, projekt korzysta z nas
 - [x] Zdefiniować i ustabilizować publiczne API biblioteki Go (`github.com/matbur/git-prev-branch/gitprevbranch`)
 - [x] Dodać testy jednostkowe i integracyjne
 - [x] Skonfigurować CI (linting, testy, buildy wieloplatformowe)
-- [ ] Przygotować i opublikować tap Homebrew wraz z formułą
+- [x] Przygotować i opublikować tap Homebrew wraz z formułą
 - [ ] Wydać pierwszą stabilną wersję wraz z plikami binarnymi
 
 ## Współtworzenie
@@ -342,7 +348,7 @@ Przestrzegaj standardowych konwencji Go i utrzymuj zmiany spójne z celami oraz 
 make check
 ```
 
-`make check` uruchamia `gofmt`, `go vet`, testy Go oraz kontrole skryptów Pythona — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py` i `scripts/test_next_tag.py`. Jobów CI, których nie uruchamia, to `lint` (`make lint`, jeśli masz zainstalowany golangci-lint v2), krzyżowo kompilujący job `build` oraz publikujący wydanie job `tag`. Skrypty README nie są równoważne: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
+`make check` uruchamia `gofmt`, `go vet`, testy Go oraz kontrole skryptów Pythona — `scripts/check_readme_sync.py`, `scripts/test_check_readme_sync.py`, `scripts/test_next_tag.py` i `scripts/test_update_homebrew_formula.py`. Jobów CI, których nie uruchamia, to `lint` (`make lint`, jeśli masz zainstalowany golangci-lint v2), krzyżowo kompilujący job `build`, publikujący wydanie job `tag` oraz wypychający formułę job `homebrew`. Skrypty README nie są równoważne: testy samego checkera mutują dosłowne wiersze skopiowane z obu README, więc edycja jednego z nich powoduje błąd testu, podczas gdy kontrola synchronizacji nadal przechodzi.
 
 ## Licencja
 

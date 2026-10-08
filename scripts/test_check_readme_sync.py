@@ -68,10 +68,18 @@ CASES = [
     (
         "heading level changed in PL",
         "README.pl.md",
-        "### 1. Instalacja przez Go",
-        "## 1. Instalacja przez Go",
+        "### 2. Instalacja przez Go",
+        "## 2. Instalacja przez Go",
         True,
         ["structure drift"],
+    ),
+    (
+        "altered line inside the PL Homebrew code block",
+        "README.pl.md",
+        "brew install matbur/tap/git-prev-branch",
+        "brew install matbur/tap/other-tool",
+        True,
+        ["structure drift", "-CODE brew install matbur/tap/git-prev-branch"],
     ),
     (
         "dropped table row in PL",
