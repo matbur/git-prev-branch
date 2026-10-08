@@ -6,8 +6,8 @@
   <circle cx="59" cy="21" r="3.5" fill="#e6edf3"/>
   <circle cx="59" cy="39" r="3.5" fill="#367B99"/>
   <circle cx="59" cy="57" r="3.5" fill="#e6edf3"/>
-  <text x="73" y="25" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">HEAD</text>
-  <text x="73" y="43" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">@{-1}</text>
-  <text x="73" y="61" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">@{-2}</text>
-  <text x="73" y="79" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#93a4b3">…</text>
+  <text x="73" y="25" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">HEAD</text>
+  <text x="73" y="43" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">@{-1}</text>
+  <text x="73" y="61" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">@{-2}</text>
+  <text x="73" y="79" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">…</text>
 </svg>
