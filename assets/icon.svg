@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">git-prev-branch icon</title>
   <rect width="128" height="128" rx="28" fill="#24292f"/>
-  <circle cx="24" cy="82" r="9" fill="#24292f" stroke="#e6edf3" stroke-width="8"/>
-  <path d="M36 76 C42 70 46 60 60 54" fill="none" stroke="#e6edf3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="60" cy="36" r="3.5" fill="#e6edf3"/>
-  <circle cx="60" cy="54" r="3.5" fill="#367B99"/>
-  <circle cx="60" cy="72" r="3.5" fill="#e6edf3"/>
-  <text x="74" y="40" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">HEAD</text>
-  <text x="74" y="58" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">@{-1}</text>
-  <text x="74" y="76" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">@{-2}</text>
-  <text x="74" y="94" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#93a4b3">…</text>
+  <polygon points="36,109 29,116 19,116 12,109 12,99 19,92 29,92 36,99" fill="#24292f" stroke="#e6edf3" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M32.5 95.5 C54.5 73.5 33 39 59 39" fill="none" stroke="#e6edf3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="59" cy="21" r="3.5" fill="#e6edf3"/>
+  <circle cx="59" cy="39" r="3.5" fill="#367B99"/>
+  <circle cx="59" cy="57" r="3.5" fill="#e6edf3"/>
+  <text x="73" y="25" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">HEAD</text>
+  <text x="73" y="43" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#367B99">@{-1}</text>
+  <text x="73" y="61" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#e6edf3">@{-2}</text>
+  <text x="73" y="79" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#93a4b3">…</text>
 </svg>
