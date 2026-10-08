@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 from update_homebrew_formula import (
+    TARGETS,
     Formula,
     FormulaError,
     asset_url,
@@ -121,22 +122,26 @@ class RenderTest(unittest.TestCase):
         self.assertIn("  end\n\n  on_linux do\n", text)
 
     def test_urls_and_checksums(self) -> None:
+        # Exact ordered sequence, so a tarball swapped between two blocks of
+        # the same OS (assertIn would not notice) fails here.
         text = sample_formula().render()
-        for (os_block, cpu_block, goos, goarch), asset in zip(
+        pairs = [
             (
-                ("on_macos", "on_intel", "darwin", "amd64"),
-                ("on_macos", "on_arm", "darwin", "arm64"),
-                ("on_linux", "on_intel", "linux", "amd64"),
-                ("on_linux", "on_arm", "linux", "arm64"),
-            ),
-            ASSETS,
-        ):
-            self.assertIn(
                 f'      url "https://github.com/matbur/git-prev-branch/releases/download/'
-                f'v1.2.3/{asset}"\n',
-                text,
+                f'v1.2.3/{asset}"',
+                f'      sha256 "{ASSETS[asset]}"',
             )
-            self.assertIn(f'      sha256 "{ASSETS[asset]}"\n', text)
+            for _, _, goos, goarch in TARGETS
+            for asset in (f"git-prev-branch-{goos}-{goarch}.tar.gz",)
+        ]
+        cursor = 0
+        for url, sha in pairs:
+            url_at = text.find(url, cursor)
+            sha_at = text.find(sha, cursor)
+            self.assertNotEqual(url_at, -1, f"missing or out of order: {url}")
+            self.assertNotEqual(sha_at, -1, f"missing or out of order: {sha}")
+            self.assertLess(url_at, sha_at, f"sha256 before url for {url}")
+            cursor = sha_at
 
     def test_install_and_test(self) -> None:
         text = sample_formula().render()

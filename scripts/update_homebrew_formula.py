@@ -175,7 +175,7 @@ def main() -> int:
             checksums=parse_checksums(Path(args.shas).read_text(encoding="utf-8")),
         )
         path = formula.write(Path(args.tap_dir))
-    except FormulaError as exc:
+    except (FormulaError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(path)
