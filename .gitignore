@@ -42,4 +42,7 @@ __pycache__/
 # Cross-compilation output of `make build-dist`
 /dist
 
+# Release packaging output of `make release-assets`
+/release-assets
+
 AGENTS.md
