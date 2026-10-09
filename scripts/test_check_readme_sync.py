@@ -28,7 +28,7 @@ CASES = [
     (
         "dropped list item in PL",
         "README.pl.md",
-        "- [x] Dodać testy jednostkowe i integracyjne\n",
+        "- [Go](https://go.dev/) 1.27 lub nowszy\n",
         "",
         True,
         ["structure drift", "-LI"],
@@ -68,8 +68,8 @@ CASES = [
     (
         "heading level changed in PL",
         "README.pl.md",
-        "### 2. Instalacja przez Go",
-        "## 2. Instalacja przez Go",
+        "### 3. Instalacja przez Go",
+        "## 3. Instalacja przez Go",
         True,
         ["structure drift"],
     ),
@@ -103,8 +103,8 @@ CASES = [
     (
         "paragraph inserted after a code fence in PL",
         "README.pl.md",
-        "Powstały plik binarny będzie dostępny",
-        "Dodatkowa nota.\n\nPowstały plik binarny będzie dostępny",
+        "Powstała binarka będzie dostępna",
+        "Dodatkowa nota.\n\nPowstała binarka będzie dostępna",
         True,
         ["structure drift", "+PARA"],
     ),

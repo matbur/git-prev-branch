@@ -12,61 +12,59 @@
 
 **[🇬🇧 English](README.md)** | [🇵🇱 Polski](README.pl.md)
 
-A lightweight CLI tool for Git users, written in Go. `git-prev-branch` helps you quickly determine which branch you switched from to reach your current branch—perfect for automatically setting the base branch when creating pull requests.
+A simple CLI tool written in Go that tells you which Git branch you switched from to get to your current branch. It's useful for setting the base branch when creating pull requests.
 
 ## Features
 
-- **Track Git branch history**: Detects the previous active branch based on your Git checkout/switch history.
-- **Script-friendly by default**: Writes only the branch name to `stdout` and all prompts to `stderr`, so `$(git-prev-branch)` and pipes capture only the branch name. Use `--yes` (`-y`) to skip the confirmation prompt entirely — without it an interactive terminal is still prompted. See [Output and prompting](#output-and-prompting).
-- **Built for GitHub CLI**: Works with `gh pr create --base` and no extra flags — see [Use with GitHub CLI](#use-with-github-cli).
-- **Flexible navigation**: Step back through your branch-switching history with a positional index (`0`, `1`, `2`, ...).
-- **Works from anywhere**: Target a Git repository in a different directory with the `--path` (`-p`) flag.
-- **Customizable behavior**: Configure interactive prompts and defaults via a YAML configuration file.
-- **Usable as a Go library**: Import `git-prev-branch` into your own Go tools — see [Use as a Go library](#use-as-a-go-library).
+- **Tracks Git branch history**: Finds the previous active branch based on Git checkout/switch history.
+- **Script-friendly**: Only the branch name goes to `stdout`; prompts go to `stderr`. Use `--yes` (`-y`) to skip prompts. See [Output and prompting](#output-and-prompting).
+- **Works with GitHub CLI**: Use with `gh pr create --base $(git-prev-branch)`. See [Use with GitHub CLI](#use-with-github-cli).
+- **Go back in history**: Use a positional index (`0`, `1`, `2`, ...) to go back by n steps.
+- **Works from anywhere**: Point to another Git repo with `--path` (`-p`).
+- **Customizable**: Configure behavior via a YAML config file.
+- **Use as a Go library**: Import `git-prev-branch` into your own Go tools. See [Use as a Go library](#use-as-a-go-library).
 
 ## Installation
 
-You can install `git-prev-branch` using one of the following methods:
+You can install `git-prev-branch` in any of the following ways:
 
-### 1. Homebrew
+### 1. Docker
 
-```bash
-brew install matbur/tap/git-prev-branch
-```
-
-Install from [`matbur/homebrew-tap`](https://github.com/matbur/homebrew-tap), a general-purpose tap that carries formulas for several command-line tools (each one published by its own release pipeline) — `brew` adds the tap automatically as part of the command above. The formula installs prebuilt binaries for macOS and Linux (amd64 and arm64), so no Go toolchain is needed, and `brew upgrade` picks up every new `vX.Y.Z` release.
-
-### 2. Go install
-
-Requires [Go](https://go.dev/dl/) installed on your system.
-
-```bash
-go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
-```
-
-This will install the binary to your `$GOPATH/bin` (or `$GOBIN`). Make sure it's included in your `PATH`.
-
-### 3. Manual build from source
-
-```bash
-git clone https://github.com/matbur/git-prev-branch.git
-cd git-prev-branch
-go build
-```
-
-The resulting binary will be available in the current directory. You can move it to a location in your `PATH`.
-
-### 4. Docker
-
-A ready-made image is published to [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch): it contains nothing but Git and the `git-prev-branch` binary, and is rebuilt automatically on every merge to `main` and on every `vX.Y.Z` tag. Mount the current repository at `/repo` (the image's work directory) and alias the whole command:
+A ready-made image is published to [Docker Hub](https://hub.docker.com/r/matbur/git-prev-branch). It contains only Git and the `git-prev-branch` binary. Mount your current repository to `/repo` and create an alias:
 
 ```bash
 alias git-prev-branch='docker run --rm -it -v "$PWD":/repo matbur/git-prev-branch'
 ```
 
-The alias is interactive like the native binary: in a terminal it shows the confirmation prompt, `git-prev-branch -y 2` still works, and exit codes pass through `docker run`. For scripts, drop `-it` (e.g. `docker run --rm -v "$PWD":/repo matbur/git-prev-branch`) — without a terminal on `stdin` the prompt is then skipped automatically. `docker` is the only requirement — neither Git nor Go has to be installed.
+For non-interactive scripts, drop `-it` (e.g. `docker run --rm -v "$PWD":/repo matbur/git-prev-branch`). No Git or Go is required. To use a repo outside the current directory, mount it and pass `--path`. A config file can be mounted at `/home/uid1000/.config/git-prev-branch`.
 
-A repository outside the current directory needs its own mount (e.g. `-v /path/to/repo:/path/to/repo` together with `--path /path/to/repo`), and a configuration file can be mounted at `/home/uid1000/.config/git-prev-branch`.
+### 2. Homebrew
+
+```bash
+brew install matbur/tap/git-prev-branch
+```
+
+Installs prebuilt binaries for macOS and Linux (amd64 and arm64) from [`matbur/homebrew-tap`](https://github.com/matbur/homebrew-tap). No Go toolchain is needed; `brew upgrade` gets new releases.
+
+### 3. Go install
+
+Requires [Go](https://go.dev/dl/).
+
+```bash
+go install github.com/matbur/git-prev-branch/cmd/git-prev-branch@latest
+```
+
+The binary goes to `$GOPATH/bin` (or `$GOBIN`). Make sure it's in your `PATH`.
+
+### 4. Build from source
+
+```bash
+git clone https://github.com/matbur/git-prev-branch.git
+cd git-prev-branch
+make build
+```
+
+The resulting binary is in the current directory. You can move it to a location in your `PATH`.
 
 ## Usage
 
@@ -319,19 +317,7 @@ To maintain high code quality and streamline releases, the project runs the foll
 
 > **Note:** the code CI, linting, cross-compilation and release jobs live in `.github/workflows/ci.yaml` (including the `homebrew` job), the Docker image in `.github/workflows/docker.yaml`.
 
-## Roadmap
 
-- [x] Implement core logic to determine previous branch from Git history
-- [x] Add CLI argument parsing (positional index and flags)
-- [x] Implement script-friendly output (stdout/stderr separation and TTY detection for safe use in `$(...)` and pipes)
-- [x] Implement `--yes`/`-y` to accept the detection without prompting
-- [x] Add support for custom repository path (`--path`/`-p`)
-- [x] Implement configuration file support (repository + user locations, `--config`/`-c` override) with interactive defaults
-- [x] Define and stabilize the public Go library API (`github.com/matbur/git-prev-branch/gitprevbranch`)
-- [x] Add unit and integration tests
-- [x] Set up CI (linting, tests, multi-platform builds)
-- [x] Prepare and publish Homebrew tap and formula
-- [ ] Create first stable release with binaries
 
 ## Contributing
 
