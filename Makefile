@@ -20,6 +20,34 @@ build-dist: ## Build dist/git-prev-branch for the current GOOS/GOARCH, trimmed a
 	if [ "$$GOOS" = "windows" ]; then out=$$out.exe; fi; \
 	go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" -o "$$out" ./cmd/git-prev-branch
 
+# The release axes, in one place so the CI cross-compile gate and the release
+# packager cannot drift apart. RELEASE_TARGETS is their product; override any
+# of the three on the command line (e.g. RELEASE_GOOSES=linux).
+RELEASE_GOOSES ?= linux darwin windows
+RELEASE_GOARCHES ?= amd64 arm64
+RELEASE_TARGETS ?= $(foreach goos,$(RELEASE_GOOSES),$(foreach goarch,$(RELEASE_GOARCHES),$(goos)/$(goarch)))
+
+.PHONY: release-target-matrix
+release-target-matrix: ## Print RELEASE_TARGETS as a JSON matrix for the CI build job
+	@python3 -c "import json; print(json.dumps([{'goos': t.split('/')[0], 'goarch': t.split('/')[1]} for t in '$(RELEASE_TARGETS)'.split()]))"
+
+# Each asset keeps its os/arch in the name: gh release create 404s on
+# duplicate file names.
+.PHONY: release-assets
+release-assets: ## Build and package every RELEASE_TARGETS binary into release-assets/ (needs VERSION)
+	@mkdir -p release-assets
+	@for target in $(RELEASE_TARGETS); do \
+		goos="$${target%/*}"; \
+		goarch="$${target#*/}"; \
+		echo "building $$goos/$$goarch"; \
+		GOOS="$$goos" GOARCH="$$goarch" $(MAKE) --no-print-directory build-dist VERSION="$(VERSION)"; \
+		if [ "$$goos" = "windows" ]; then \
+			mv dist/git-prev-branch.exe "release-assets/git-prev-branch-$$goos-$$goarch.exe"; \
+		else \
+			tar -C dist -czf "release-assets/git-prev-branch-$$goos-$$goarch.tar.gz" git-prev-branch; \
+		fi; \
+	done
+
 .PHONY: check
 check: fmt-check vet test check-readme test-scripts ## Run every check that needs only Go and Python
 
