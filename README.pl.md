@@ -12,17 +12,17 @@
 
 [🇬🇧 English](README.md) | **[🇵🇱 Polski](README.pl.md)**
 
-Proste narzędzie CLI napisane w Go, które pokazuje, z której gałęzi przełączyłeś się na bieżącą. Przydatne przy ustawianiu gałęzi bazowej podczas tworzenia pull requestów.
+Proste narzędzie CLI, które pokazuje, z której gałęzi Git przełączyłeś się na bieżącą. Przydatne przy ustawianiu gałęzi bazowej dla pull requesta.
 
 ## Funkcje
 
-- **Śledzi historię gałęzi Gita**: znajduje poprzednio aktywną gałąź na podstawie historii checkout/switch.
-- **Przyjazny dla skryptów**: tylko nazwa gałęzi trafia na `stdout`, monity na `stderr`. Użyj `--yes` (`-y`), by pominąć monity. Zob. [Wyjście i monity](#wyjście-i-monity).
-- **Działa z GitHub CLI**: można używać z `gh pr create --base $(git-prev-branch)`. Zob. [Użycie z GitHub CLI](#użycie-z-github-cli).
-- **Cofanie w historii**: użyj indeksu pozycyjnego (`0`, `1`, `2`, ...), by cofnąć się o n kroków.
-- **Działa z dowolnego miejsca**: wskaż inne repozytorium Git flagą `--path` (`-p`).
-- **Konfigurowalny**: zachowanie można ustawić w pliku YAML.
-- **Można używać jako biblioteki Go**: zaimportuj `git-prev-branch` do własnych narzędzi Go. Zob. [Użycie jako biblioteka Go](#użycie-jako-biblioteka-go).
+- Pokazuje poprzednią gałąź (na podstawie historii checkout/switch)
+- Przyjazny dla skryptów: tylko nazwa gałęzi na `stdout`, monity na `stderr`. Użyj `--yes` (`-y`), by pominąć monity.
+- Działa z `gh pr create --base $(git-prev-branch)`
+- Cofanie o `0`, `1`, `2`, ... kroki
+- Działa z innymi repozytoriami (`--path`/`-p`)
+- Konfigurowalny przez YAML
+- Można używać jako biblioteki Go
 
 ## Instalacja
 

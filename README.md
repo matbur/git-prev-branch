@@ -12,17 +12,17 @@
 
 **[🇬🇧 English](README.md)** | [🇵🇱 Polski](README.pl.md)
 
-A simple CLI tool written in Go that tells you which Git branch you switched from to get to your current branch. It's useful for setting the base branch when creating pull requests.
+A simple CLI tool that shows which Git branch you came from. Useful for setting the base branch with GitHub CLI.
 
 ## Features
 
-- **Tracks Git branch history**: Finds the previous active branch based on Git checkout/switch history.
-- **Script-friendly**: Only the branch name goes to `stdout`; prompts go to `stderr`. Use `--yes` (`-y`) to skip prompts. See [Output and prompting](#output-and-prompting).
-- **Works with GitHub CLI**: Use with `gh pr create --base $(git-prev-branch)`. See [Use with GitHub CLI](#use-with-github-cli).
-- **Go back in history**: Use a positional index (`0`, `1`, `2`, ...) to go back by n steps.
-- **Works from anywhere**: Point to another Git repo with `--path` (`-p`).
-- **Customizable**: Configure behavior via a YAML config file.
-- **Use as a Go library**: Import `git-prev-branch` into your own Go tools. See [Use as a Go library](#use-as-a-go-library).
+- Shows the previous branch (based on checkout/switch history)
+- Script-friendly: branch name only to `stdout`, prompts to `stderr`. Use `--yes` (`-y`) to skip prompts.
+- Works with `gh pr create --base $(git-prev-branch)`
+- Go back with `0`, `1`, `2`, ... steps
+- Works with other repos via `--path` (`-p`)
+- Configurable via YAML
+- Can be used as a Go library
 
 ## Installation
 
